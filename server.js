@@ -1,5 +1,5 @@
 const express = require("express");
-const HttpError = require("./models/http-error");
+const HttpError = require("./models/application/httpError");
 const allowedOrigins = require("./configs/allowedOrigin");
 
 const session = require("express-session");
@@ -47,7 +47,6 @@ DBconnect(() => {
     console.log(`app is running on port ${process.env.PORT}`);
   });
 });
-
 
 app.use(express.json());
 app.use("/api", route);
