@@ -1,0 +1,20 @@
+const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
+
+const { Schema, Types } = mongoose;
+
+const examScheduleSchema = new Schema(
+  {
+    room: { type: Types.ObjectId, ref: "Room", required: true },
+    inspectors: [{ type: Types.ObjectId, ref: "Inspector" }],
+    students: [{ type: Types.ObjectId, ref: "Student" }],
+    start_time: { type: Date, required: true },
+    exam_type: { type: String, required: true, enum: ["PRACTICE", "THEORY"] },
+  },
+  { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+//Plugins, methods, middlewares, statics, query helpers
+examScheduleSchema.plugin(uniqueValidator);
+
+module.exports = mongoose.model("Exam_shedule", examScheduleSchema);
