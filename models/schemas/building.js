@@ -7,7 +7,7 @@ const buildingSchema = new Schema(
   {
     building_name: { type: String, required: true },
     location: { lat: { type: String }, long: { type: String } },
-    construction_start_date: { type: Date },
+    construction_start_date: { type: Date, required: true },
     opening_date: { type: Date },
     status: { type: Boolean, required: true },
     number_of_floors: { type: Number, min: 1 },

@@ -47,7 +47,7 @@ const studentSchema = new Schema(
     school_year: {
       from: { type: Number },
       to: { type: Number },
-      year_and_training: { type: Number },
+      year_end_training: { type: Number },
     },
     education_program: { type: String, required: true, minLength: 6 },
     class: { type: String, required: true, minLength: 6 },

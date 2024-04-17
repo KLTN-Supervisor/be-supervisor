@@ -8,6 +8,7 @@ const compress = require("compression");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const route = require("./routes/index");
 const app = express();
@@ -49,11 +50,13 @@ DBconnect(() => {
 });
 
 app.use(express.json());
-app.use("/api", route);
 
 // Sử dụng body-parser middleware
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.static(path.resolve(__dirname, "public")));
+
+app.use("/api", route);
 
 app.use((req, res, next) => {
   const error = new HttpError("Đường dẫn không tồn tại!", 404);
