@@ -8,6 +8,8 @@ const examScheduleSchema = new Schema(
     room: { type: Types.ObjectId, ref: "Room", required: true },
     inspectors: [{ type: Types.ObjectId, ref: "Inspector" }],
     students: [{ type: Types.ObjectId, ref: "Student" }],
+    subject: { type: String, required: true },
+    term: { type: Number, required: true },
     start_time: { type: Date, required: true },
     exam_type: { type: String, required: true, enum: ["PRACTICE", "THEORY"] },
   },
