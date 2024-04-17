@@ -129,5 +129,49 @@ const getStudentsPaginated = async (req, res) => {
   }
 };
 
+const searchStudents = async (req, res, next) => {
+  const searchText = req.query.search;
+  const skip = parseInt(req.query.skip) || 0;
+  const type = req.query.type;
+  console.log(searchText);
+  try {
+    const regex = new RegExp(searchText, "i");
+    if (searchText) {
+      if (type === "name") {
+        console.log("Toi day ne")
+        const students = await Student.find({
+          $or: [
+            { first_name: regex },
+            { middle_name: regex },
+            { last_name: regex },
+          ],
+        })
+          .sort({ first_name: 1 })
+          .skip(skip)
+          .limit(16)
+          .exec();
+        console.log(students)
+        res.json(students);
+      } else if (type === "id") {
+        console.log("Toi day ch");
+        const students = await Student.find({
+          student_id: regex,
+        })
+          .sort({ student_id: 1 })
+          .skip(skip)
+          .limit(16)
+          .exec();
+        console.log(students);
+        res.json(students);
+      }
+    } else {
+      res.json([]);
+    }
+  } catch (error) {
+    return next(error + searchText);
+  }
+};
+
 exports.createStudent = createStudent;
 exports.getStudentsPaginated = getStudentsPaginated;
+exports.searchStudents = searchStudents;

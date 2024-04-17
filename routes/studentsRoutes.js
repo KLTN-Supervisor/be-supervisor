@@ -9,6 +9,7 @@ const router = express.Router();
 // router.use(tokenHandler.verifyAccessToken);
 
 router.post("/create", StudentController.createStudent);
+router.get("/search", StudentController.searchStudents);
 router.get("/", StudentController.getStudentsPaginated);
 
 module.exports = router;
