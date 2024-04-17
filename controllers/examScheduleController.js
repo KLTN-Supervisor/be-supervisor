@@ -70,10 +70,10 @@ const getBuildingByDate = async (req, res, next) => {
         const date = parseInt(req.query.date) || 1;
         const roomIds = await ExamSchedule.find({
             $expr: {
-              $eq: [
-                { $dateToString: { format: '%Y-%m-%d', date: '$start_time' } },
-                { $dateToString: { format: '%Y-%m-%d', date: date } }
-              ]
+                $eq: [
+                    { $dateToString: { format: '%Y-%m-%d', date: '$start_time' } },
+                    { $dateToString: { format: '%Y-%m-%d', date: date } }
+                ]
             }
           }).distinct('room');
         const rooms = await Room.find({ _id: { $in: roomIds } });
