@@ -5,23 +5,23 @@ const csv = require("csvtojson");
 
 const importStudents = async (req, res, next) => {
   try {
-    const csvdata = await csv().fromFile(req.file.path);
+    const csvdata = await csv({
+      colParser: {
+        date_of_birth: function (item, head, resultRow, row, colIdx) {
+          const parts = item.split("/");
+          return new Date(parts[2], parts[1] - 1, parts[0]);
+        },
+        gender: function (item, head, resultRow, row, colIdx) {
+          if (item.toLowerCase() === "nữ" || item.toLowerCase() === "female")
+            return false;
+          else return true;
+        },
+      },
+    }).fromFile(req.file.path);
+
+    console.log(csvdata);
 
     if (csvdata.length > 0) {
-      for (const student of csvdata) {
-        // Xử lý giới tính và ngày tháng
-        if (
-          student.gender.toLowerCase() === "nữ" ||
-          student.gender.toLowerCase() === "female"
-        )
-          student.gender = false;
-        else student.gender = true;
-
-        const parts = student.date_of_birth.split("/");
-        const dateOfBirth = new Date(parts[2], parts[1] - 1, parts[0]);
-        student.date_of_birth = dateOfBirth;
-      }
-
       // Tạo một danh sách các student_id từ dữ liệu CSV
       const studentIds = csvdata.map((student) => student.student_id);
 
