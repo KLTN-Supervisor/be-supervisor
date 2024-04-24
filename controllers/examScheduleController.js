@@ -26,25 +26,18 @@ const getTermsOfYear = async (req, res, next) => {
 
 const getExamYears = async (req, res, next) => {
     try {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-    
-        const startOfYear = new Date(`${currentYear}-01-01`);
-        const endOfYear = new Date(`${currentYear}-12-31`);
-    
-        const examYears = await ExamSchedule.find({
-          $or: [
-            { start_time: { $gte: startOfYear, $lte: endOfYear }, month: { $gt: 10 } },
-            { start_time: { $gte: startOfYear, $lte: endOfYear }, month: { $lt: 10 } }
-          ]
-        }).sort(-1).distinct('start_time');
-    
-        const years = examYears.map((start_time) => {
-          const year = new Date(start_time).getFullYear();
-          return new Date(start_time).getMonth() > 10 ? year : year - 1;
+        const examSchedules = await ExamSchedule.find({});
+
+        const years = examSchedules.map((examSchedule) => {
+            const startYear = examSchedule.start_time.getFullYear(); // Lấy năm từ trường start_time
+            const termYear = startYear + examSchedule.term; // Tính toán năm từ trường term
+            if(termYear > 1)
+                return startYear -1;
+            else return startYear;
         });
 
         const uniqueYears = years.filter((year, index) => years.indexOf(year) === index);
+        console.log(uniqueYears);
 
         res.json(uniqueYears);
     } catch (error) {
@@ -67,15 +60,20 @@ const getExamDatesByTerm = async (req, res, next) => {
 
 const getBuildingByDate = async (req, res, next) => {
     try {
-        const date = parseInt(req.query.date) || 1;
+        const dateParam = req.query.date || '00/00/0000';
+        const [day, month, year] = dateParam.split('/').map(Number);
+        const date = new Date(year, month - 1, day+1); // Tạo đối tượng Date từ ngày, tháng và năm
+        console.log(date);
+
         const roomIds = await ExamSchedule.find({
             $expr: {
                 $eq: [
-                    { $dateToString: { format: '%Y-%m-%d', date: '$start_time' } },
-                    { $dateToString: { format: '%Y-%m-%d', date: date } }
+                { $dateToString: { format: '%Y-%m-%d', date: '$start_time' } },
+                { $dateToString: { format: '%Y-%m-%d', date: date } }
                 ]
             }
-          }).distinct('room');
+        }).distinct('room');
+        console.log(roomIds);
         const rooms = await Room.find({ _id: { $in: roomIds } });
         const buildingIds = rooms.map(room => room.building);
         const buildings = await Building.find({ _id: { $in: buildingIds } });
@@ -87,19 +85,24 @@ const getBuildingByDate = async (req, res, next) => {
 
 const getExamTimeByBuilding = async (req, res, next) => {
     try {
-        const date = parseInt(req.query.date) || 1;
         const building_id = req.query.building_id;
         const rooms = await Room.find({ building: building_id });
-        const examSchedules = await ExamSchedule.find({ 
+        const dateParam = req.query.date || '00/00/0000';
+        const [day, month, year] = dateParam.split('/').map(Number);
+        const date = new Date(year, month - 1, day+1); // Tạo đối tượng Date từ ngày, tháng và năm
+
+        const examSchedules = await ExamSchedule.find({
             $expr: {
                 $eq: [
                 { $dateToString: { format: '%Y-%m-%d', date: '$start_time' } },
                 { $dateToString: { format: '%Y-%m-%d', date: date } }
                 ]
-          }, room: { $in: rooms } });
+            }, room: { $in: rooms } });
         let times= [];
-        if (examSchedules) {
-            examSchedules.forEach(examSchedule => {
+        const uniqueexamSchedules = examSchedules.filter((examSchedule, index) => examSchedules.indexOf(examSchedule) === index);
+        // console.log(uniqueexamSchedules);
+        if (uniqueexamSchedules) {
+            uniqueexamSchedules.forEach(examSchedule => {
               const startTime = examSchedule.start_time;
               console.log(startTime);
               times.push(startTime)
@@ -107,7 +110,11 @@ const getExamTimeByBuilding = async (req, res, next) => {
           } else {
             console.log('Không tìm thấy lịch thi cho ngày và phòng thi cụ thể.');
           }
-        res.json(times);
+          const uniqueTimes = times
+          .map((time) => time.toISOString()) // Chuyển đổi các đối tượng Date thành chuỗi ISO
+          .filter((time, index, array) => array.indexOf(time) === index);
+        console.log(uniqueTimes);
+        res.json(uniqueTimes);
     } catch (error) {
         return next(error);
     }
@@ -115,13 +122,14 @@ const getExamTimeByBuilding = async (req, res, next) => {
 
 const getRoomByExamTime = async (req, res, next) => {
     try {
-        const date = parseInt(req.query.date) || 1;
+        const date = req.query.date || '00/00/0000';
         const building_id = req.query.building_id;
         const rooms = await Room.find({ building: building_id });
-        const examSchedules = await ExamSchedule.find({ start_time: date, room: { $in: rooms } });
+        const examSchedules = await ExamSchedule.find({
+            start_time: date, room: { $in: rooms } });
         const examRoomIds = examSchedules.map(exam => exam.room);
         const examRooms = await Room.find({ _id: { $in: examRoomIds } });
-        
+        console.log(examRooms)
         res.json(examRooms);
     } catch (error) {
         return next(error);
@@ -130,10 +138,11 @@ const getRoomByExamTime = async (req, res, next) => {
 
 const getStudentByRoom = async (req, res, next) => {
     try {
-        const date = parseInt(req.query.date) || 1;
+        const date = req.query.date || '00/00/0000';
         const room = req.query.room;
-        const examSchedules = await ExamSchedule.find({ start_time: date, room: room });
-        const examStudentIds = examSchedules.map(exam => exam.students);
+        const examSchedules = await ExamSchedule.findOne({ start_time: date, room: room });
+        console.log(examSchedules);
+        const examStudentIds = examSchedules.students;
         const examStudents = await Student.find({ _id: { $in: examStudentIds } });
         
         res.json(examStudents);
