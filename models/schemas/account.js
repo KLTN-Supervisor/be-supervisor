@@ -45,6 +45,7 @@ const accountSchema = new Schema(
     full_name: { type: String, required: true },
     search_keyword: { type: String, required: true, default: "" },
     profile_picture: { type: String, trim: true, default: "" },
+    inspector: { type: Types.ObjectId, required: true, ref: "Inspector" },
     online: { type: Boolean },
     last_online: { type: Date, default: new Date() },
     banned: { type: Boolean, required: true, default: false },

@@ -5,6 +5,9 @@
 /.pnp
 .pnp.js
 
+# import upload
+*.csv
+
 # testing
 /coverage
 

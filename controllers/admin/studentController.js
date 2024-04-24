@@ -19,8 +19,6 @@ const importStudents = async (req, res, next) => {
       },
     }).fromFile(req.file.path);
 
-    console.log(csvdata);
-
     if (csvdata.length > 0) {
       // Tạo một danh sách các student_id từ dữ liệu CSV
       const studentIds = csvdata.map((student) => student.student_id);
