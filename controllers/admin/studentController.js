@@ -69,4 +69,56 @@ const importStudents = async (req, res, next) => {
   }
 };
 
-module.exports = { importStudents };
+const getStudentsPaginated = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || null;
+
+    if (page < 1 || limit < 1) {
+      const error = new HttpError("Invalid page or limit value!", 400);
+      return next(error);
+    }
+
+    let query = {};
+
+    if (searchQuery) {
+      query = { first_name: { $regex: searchQuery, $options: "i" } };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const students = await Student.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $sort: { student_id: 1, first_name: 1 },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    const totalStudents = await Student.countDocuments(query);
+
+    res.json({
+      students: students,
+      current_page: page,
+      total_pages: Math.ceil(totalStudents / limit),
+      total_students: totalStudents,
+    });
+  } catch (err) {
+    console.error("get students----------- ", err);
+    const error = new HttpError(
+      "An error occured, please try again later!",
+      500
+    );
+    return next(error);
+  }
+};
+
+module.exports = { importStudents, getStudentsPaginated };
