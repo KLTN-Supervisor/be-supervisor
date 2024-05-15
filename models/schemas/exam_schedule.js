@@ -7,7 +7,12 @@ const examScheduleSchema = new Schema(
   {
     room: { type: Types.ObjectId, ref: "Room", required: true },
     inspectors: [{ type: Types.ObjectId, ref: "Inspector" }],
-    students: [{ type: Types.ObjectId, ref: "Student" }],
+    students: [
+      {
+        student: { type: Types.ObjectId, ref: "Student" },
+        attendance: { type: Boolean, default: false }
+      }
+    ],
     subject: { type: String, required: true },
     term: { type: Number, required: true },
     start_time: { type: Date, required: true },

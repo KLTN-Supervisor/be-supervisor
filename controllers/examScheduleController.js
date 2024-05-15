@@ -142,8 +142,13 @@ const getStudentByRoom = async (req, res, next) => {
         const room = req.query.room;
         const examSchedules = await ExamSchedule.findOne({ start_time: date, room: room });
         console.log(examSchedules);
-        const examStudentIds = examSchedules.students;
-        const examStudents = await Student.find({ _id: { $in: examStudentIds } });
+        let examStudents = [];
+        for (const student of examSchedules.students){
+            console.log(student)
+            const examStudent = await Student.findOne({ _id: student.student});
+            console.log("examStudent",examStudent)
+            examStudents.push({student: examStudent, attendance: student.attendance})
+        }
         
         res.json(examStudents);
     } catch (error) {
