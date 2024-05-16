@@ -11,13 +11,15 @@ const importExamSchedules = async (req, res, next) => {
     const csvdata = await csv({
       colParser: {
         students: function (item, head, resultRow, row, colIdx) {
-          return item.split(";");
+          return item.split(";").map((student, i) => {
+            return { student: student };
+          });
         },
         inspectors: function (item, head, resultRow, row, colIdx) {
           return item.split(";");
         },
         start_time: function (item, head, resultRow, row, colIdx) {
-          const [datePart, timePart] = item.split("  "); // Tách phần ngày và phần giờ
+          const [datePart, timePart] = item.split(" "); // Tách phần ngày và phần giờ
           const dateParts = datePart.split("/");
           const timeParts = timePart.split(":");
           // Tạo đối tượng Date từ phần ngày và phần giờ
@@ -40,7 +42,7 @@ const importExamSchedules = async (req, res, next) => {
       const roomIds = new Set(); // Sử dụng Set để loại bỏ các giá trị trùng lặp
 
       csvdata.forEach((entry) => {
-        entry.students.forEach((id) => studentIds.add(id));
+        entry.students.forEach((student) => studentIds.add(student.student));
         entry.inspectors.forEach((id) => inspectorIds.add(id));
         roomIds.add(entry.room); // Thêm room ID vào Set
       });
@@ -50,8 +52,8 @@ const importExamSchedules = async (req, res, next) => {
         student_id: { $in: Array.from(studentIds) },
       }).distinct("student_id");
       const validInspectors = await Inspector.find({
-        student_id: { $in: Array.from(inspectorIds) },
-      }).distinct("student_id");
+        inspector_id: { $in: Array.from(inspectorIds) },
+      }).distinct("inspector_id");
       const validRooms = await Room.find({
         room_name: { $in: Array.from(roomIds) },
       }).distinct("room_name");
