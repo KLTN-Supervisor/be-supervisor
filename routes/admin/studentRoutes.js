@@ -12,5 +12,10 @@ router.post(
   uploadToFolderPath("students-info").single("file"),
   StudentController.importStudents
 );
+router.post(
+  "/images-import",
+  uploadToFolderPath("students-images-compress").single("file"),
+  StudentController.handleUncompressFile
+);
 
 module.exports = router;

@@ -9,6 +9,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const fs = require("fs");
 
 const route = require("./routes/index");
 const app = express();
@@ -38,6 +39,12 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  // Add the Cross-Origin-Resource-Policy header
+  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+  next();
+});
+
 app.use(cookieParser());
 app.set("view engine", "pug");
 
@@ -54,7 +61,11 @@ app.use(express.json());
 // Sử dụng body-parser middleware
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.static(path.resolve(__dirname, "public")));
+app.use(
+  express.static(
+    path.resolve(__dirname, "public", "uploads", "students-images")
+  )
+);
 
 app.use("/api", route);
 
@@ -64,6 +75,11 @@ app.use((req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
+  if (req.file) {
+    fs.unlink(req.file.path, (err) => {
+      console.log(err);
+    });
+  }
   if (res.headerSent) {
     return next(error);
   }

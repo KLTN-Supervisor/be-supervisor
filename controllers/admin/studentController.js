@@ -2,6 +2,10 @@ const HttpError = require("../../models/application/httpError");
 const Student = require("../../models/schemas/student");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
+const fs = require("fs");
+const path = require("path");
+const StreamZip = require("node-stream-zip");
+const unrar = require("node-unrar-js");
 
 const importStudents = async (req, res, next) => {
   try {
@@ -69,6 +73,78 @@ const importStudents = async (req, res, next) => {
   }
 };
 
+const handleUncompressFile = async (req, res, next) => {
+  try {
+    // Kiểm tra xem có file được upload hay không
+    if (!req.file) {
+      const error = new HttpError("No file uploaded!", 400);
+      return next(error);
+    }
+
+    const filePath = req.file.path;
+    const fileExtension = path.extname(filePath);
+    const targetPath = path.join("public", "uploads", "students-images");
+
+    if (fileExtension === ".zip") {
+      await extractZipArchive(filePath, targetPath);
+    } else if (fileExtension === ".rar") {
+      await extractRarArchive(filePath, targetPath);
+    } else {
+      const error = new HttpError(
+        "Unsupported file format. Please upload a .zip or .rar file!",
+        400
+      );
+      return next(error);
+    }
+
+    res.json({ message: "Uncompress success!" });
+  } catch (err) {
+    console.error("admin import students images----------- ", err);
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+};
+
+const extractZipArchive = async (filePath, destination) => {
+  try {
+    const zip = new StreamZip.async({ file: filePath });
+
+    const entries = await zip.entries();
+    const folderInsideZipPath = Object.values(entries)[0].name.split("/");
+
+    await zip.extract(
+      folderInsideZipPath.length >= 2 ? folderInsideZipPath[0] : null,
+      destination
+    );
+    await zip.close();
+  } catch (err) {
+    throw err;
+  }
+};
+
+const extractRarArchive = async (filePath, destination) => {
+  try {
+    // Create the extractor with the file information (returns a promise)
+    const extractor = await unrar.createExtractorFromFile({
+      filepath: filePath,
+      targetPath: destination,
+      filenameTransform: (filename) => {
+        const fileNameArray = filename.split("/");
+        return fileNameArray[fileNameArray.length - 1];
+      },
+    });
+
+    // Extract the files
+    [
+      ...extractor.extract({
+        files: (fileHeader) => fileHeader.flags.directory === false,
+      }).files,
+    ];
+  } catch (err) {
+    throw err;
+  }
+};
+
 const getStudentsPaginated = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -121,4 +197,4 @@ const getStudentsPaginated = async (req, res, next) => {
   }
 };
 
-module.exports = { importStudents, getStudentsPaginated };
+module.exports = { importStudents, getStudentsPaginated, handleUncompressFile };
