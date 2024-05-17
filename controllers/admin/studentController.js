@@ -97,11 +97,38 @@ const handleUncompressFile = async (req, res, next) => {
       return next(error);
     }
 
-    res.json({ message: "Uncompress success!" });
+    await organizeFilesById(targetPath);
+
+    res.json({ message: "Upload images success!" });
   } catch (err) {
     console.error("admin import students images----------- ", err);
     const error = new HttpError(err.message, 500);
     return next(error);
+  }
+};
+
+const organizeFilesById = async (targetPath) => {
+  try {
+    const files = await fs.promises.readdir(targetPath);
+
+    for (const file of files) {
+      const filePath = path.join(targetPath, file);
+      const stats = await fs.promises.stat(filePath);
+
+      if (stats.isFile()) {
+        const [id] = file.split("_");
+        const newDirPath = path.join(targetPath, id);
+
+        if (!fs.existsSync(newDirPath)) {
+          await fs.promises.mkdir(newDirPath);
+        }
+
+        const newFilePath = path.join(newDirPath, file);
+        await fs.promises.rename(filePath, newFilePath);
+      }
+    }
+  } catch (err) {
+    console.error("Error while organizing files: ", err);
   }
 };
 
