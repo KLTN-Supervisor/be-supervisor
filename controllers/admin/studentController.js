@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const StreamZip = require("node-stream-zip");
 const unrar = require("node-unrar-js");
+const { getValidFields } = require("../../utils/validators");
+const { transformObjectFields } = require("../../utils/objectFunctions");
 
 const importStudents = async (req, res, next) => {
   try {
@@ -224,4 +226,66 @@ const getStudentsPaginated = async (req, res, next) => {
   }
 };
 
-module.exports = { importStudents, getStudentsPaginated, handleUncompressFile };
+const updateStudentFields = async (id, updateFields) => {
+  try {
+    // Sử dụng findOneAndUpdate để cập nhật nhiều trường
+    const student = await Student.findOneAndUpdate(
+      { _id: id },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!student) {
+      throw new HttpError("Cannot find student to update!", 404);
+    }
+
+    return student;
+  } catch (err) {
+    console.error("Lỗi khi cập nhật thông tin người dùng: ", err);
+    throw new HttpError(
+      "Có lỗi khi cập nhật thông tin người dùng, vui lòng thử lại!",
+      500
+    );
+  }
+};
+
+const updateStudent = async (req, res, next) => {
+  const id = req.params.id;
+  const updateFields = req.body; // Chứa các trường cần cập nhật
+
+  // Kiểm tra và lọc các trường hợp lệ
+  // const validFields = [
+  //   "first_name",
+  //   "bio",
+  //   "email",
+  //   "profile_picture",
+  //   "date_of_birth",
+  //   "gender",
+  //   "phone",
+  //   "hometown",
+  //   "self_lock",
+  //   "search_keyword",
+  // ];
+  // Lọc và chỉ giữ lại các trường hợp lệ
+  const validUpdateFields = getValidFields(updateFields, []);
+
+  if (Object.keys(validUpdateFields).length === 0) {
+    const error = new HttpError("Invalid input!", 422);
+    return next(error);
+  }
+  const transformedFields = transformObjectFields(validUpdateFields);
+
+  try {
+    const student = await updateStudentFields(id, transformedFields);
+    res.json({ student: student });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+module.exports = {
+  importStudents,
+  getStudentsPaginated,
+  handleUncompressFile,
+  updateStudent,
+};

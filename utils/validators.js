@@ -16,6 +16,10 @@ exports.validateLength = (text, min, max) => {
 const getValidFields = (updateFields, validFields) => {
   const validUpdateFields = {};
 
+  if (validFields.length === 0) {
+    return updateFields;
+  }
+
   // Kiểm tra và lọc các trường hợp lệ
   for (const key in updateFields) {
     if (validFields.includes(key)) {

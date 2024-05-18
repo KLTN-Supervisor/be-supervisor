@@ -8,15 +8,41 @@ const csv = require("csvtojson");
 
 const importExamSchedules = async (req, res, next) => {
   try {
+    // Kiểm tra sự tồn tại của các ID
+    const studentIds = new Set();
+    const inspectorIds = new Set();
+    const roomIds = new Set();
+
     const csvdata = await csv({
       colParser: {
-        students: function (item, head, resultRow, row, colIdx) {
-          return item.split(";").map((student, i) => {
-            return { student: student };
+        room: async function (item, head, resultRow, row, colIdx) {
+          roomIds.add(item);
+          const room = await Room.findOne({ room_name: item });
+          return room ? room._id : null;
+        },
+        students: async function (item, head, resultRow, row, colIdx) {
+          const studentsArray = item.split(";");
+          studentsArray.map((student, i) => {
+            studentIds.add(student);
+          });
+          const idsStudents = await Student.find({
+            student_id: { $in: studentsArray },
+          }).select("student_id");
+          return idsStudents.map((idStudent, i) => {
+            return { student: idStudent._id };
           });
         },
-        inspectors: function (item, head, resultRow, row, colIdx) {
-          return item.split(";");
+        inspectors: async function (item, head, resultRow, row, colIdx) {
+          const inspectorsArray = item.split(";");
+          inspectorsArray.map((inspector, i) => {
+            inspectorIds.add(inspector);
+          });
+          const idsInspectors = await Inspector.find({
+            inspector_id: { $in: inspectorsArray },
+          }).select("inspector_id");
+          return idsInspectors.map((idInspector, i) => {
+            return idInspector._id;
+          });
         },
         start_time: function (item, head, resultRow, row, colIdx) {
           const [datePart, timePart] = item.split(" "); // Tách phần ngày và phần giờ
@@ -36,17 +62,6 @@ const importExamSchedules = async (req, res, next) => {
     }).fromFile(req.file.path);
 
     if (csvdata.length > 0) {
-      // Kiểm tra sự tồn tại của các ID
-      const studentIds = new Set();
-      const inspectorIds = new Set();
-      const roomIds = new Set(); // Sử dụng Set để loại bỏ các giá trị trùng lặp
-
-      csvdata.forEach((entry) => {
-        entry.students.forEach((student) => studentIds.add(student.student));
-        entry.inspectors.forEach((id) => inspectorIds.add(id));
-        roomIds.add(entry.room); // Thêm room ID vào Set
-      });
-
       // Kiểm tra sự tồn tại của các ID trong cơ sở dữ liệu
       const validStudents = await Student.find({
         student_id: { $in: Array.from(studentIds) },
