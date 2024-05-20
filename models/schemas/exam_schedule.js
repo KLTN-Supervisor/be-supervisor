@@ -15,8 +15,17 @@ const examScheduleSchema = new Schema(
     ],
     subject: { type: String, required: true },
     term: { type: Number, required: true },
+    year: {
+      from: { type: Number, required: true },
+      to: { type: Number, required: true },
+    },
     start_time: { type: Date, required: true },
-    exam_type: { type: String, required: true, enum: ["PRACTICE", "THEORY"] },
+    exam_type: {
+      type: String,
+      required: true,
+      enum: ["PRACTICE", "THEORY"],
+      default: "THEORY",
+    },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

@@ -17,5 +17,6 @@ router.post(
   uploadToFolderPath("students-images-compress").single("file"),
   StudentController.handleUncompressFile
 );
+router.put("/:id", StudentController.updateStudent);
 
 module.exports = router;

@@ -6,7 +6,7 @@ const storeFolder = (folder) => {
       cb(null, `./public/uploads/${folder}`);
     },
     filename: (req, file, cb) => {
-      cb(null, Date.now() + "-" + file.originalname);
+      cb(null, file.originalname);
     },
   });
   return storage;

@@ -5,6 +5,7 @@ const Inspector = require("../../models/schemas/inspector");
 const Room = require("../../models/schemas/room");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
+const xlsx = require("xlsx");
 
 const importExamSchedules = async (req, res, next) => {
   try {
@@ -118,4 +119,77 @@ const importExamSchedules = async (req, res, next) => {
   }
 };
 
-module.exports = { importExamSchedules };
+const importExamSchedulesExcel = async (req, res, next) => {
+  try {
+    // Kiểm tra sự tồn tại của các ID
+    const studentIds = new Set();
+    const inspectorIds = new Set();
+    const roomIds = new Set();
+
+    const workbook = xlsx.readFile(req.file.path);
+    // Chọn sheet đầu tiên
+    const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
+    res.json({ message: "success" });
+  } catch (err) {
+    console.error("admin import exam schedules----------- ", err);
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+};
+
+const getExamSchedulesExcel = async (req, res, next) => {
+  try {
+    const workbook = xlsx.readFile(
+      "public/uploads/exam-schedules/1716179532662-DSSVDuThiAVDR_17.03.24.xls"
+    );
+    // Chọn sheet đầu tiên
+    const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
+
+    let result = [];
+    let currentExam = null;
+
+    for (let item of data) {
+      if (item?.["C"] === "Ngày Thi :") {
+        if (currentExam !== null) {
+          result.push(currentExam);
+        }
+        let roomAndTime = item?.["E"]?.split(" - Phòng thi: ");
+        let termAndYear = data
+          .find((i) => i?.["A"] === "Học Kỳ 02 - Năm Học 2023-2024")
+          ?.["A"]?.split(" - ");
+        currentExam = {
+          room: roomAndTime?.[1],
+          start_time: roomAndTime?.[0]
+            ?.split(" - Giờ Thi: ")[1]
+            ?.split(" -   phút")[0],
+          term: termAndYear?.[0],
+          school_year: termAndYear?.[1],
+          subject: data.find((i) => i?.["C"] === "Môn Học: ")?.["E"],
+          students: [],
+        };
+      } else if (item?.["B"] && typeof item["B"] === "number") {
+        currentExam.students.push({
+          student: item?.["D"],
+        });
+      }
+    }
+
+    if (currentExam !== null) {
+      result.push(currentExam);
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error("admin import exam schedules----------- ", err);
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+};
+
+module.exports = {
+  importExamSchedules,
+  importExamSchedulesExcel,
+  getExamSchedulesExcel,
+};
