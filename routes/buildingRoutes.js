@@ -8,7 +8,7 @@ const router = express.Router();
 // // routes need access token
 // router.use(tokenHandler.verifyAccessToken);
 
-router.post("/create-building", BuildingController.createBuilding);
+//router.post("/create-building", BuildingController.createBuilding);
 router.post("/create-room", BuildingController.createRoom);
 //router.get("/", StudentController.getStudentsPaginated);
 

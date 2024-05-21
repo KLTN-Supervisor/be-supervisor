@@ -70,25 +70,25 @@ const createRoom = async (req, res, next) => {
   //   const { otp, otpToken, email, fullname, username, password } = req.body;
 
   const newRoom1 = new Room({
-    room_name: "A5-204",
+    room_name: "A3-101",
     building: "661fe81f908f6ee90702e199",
-    floor: 2,
+    floor: 1,
     status: true,
     max_seats: 50,
-    room_type: "COMPUTER_ROOM",
+    room_type: "NORMAL",
   });
   const newRoom2 = new Room({
-    room_name: "A5-303",
+    room_name: "A2-102",
     building: "661fe81f908f6ee90702e199",
-    floor: 3,
+    floor: 1,
     status: true,
     max_seats: 50,
-    room_type: "COMPUTER_ROOM",
+    room_type: "NORMAL",
   });
   const newRoom3 = new Room({
-    room_name: "A5-302",
+    room_name: "A2-101",
     building: "661fe81f908f6ee90702e199",
-    floor: 3,
+    floor: 1,
     status: true,
     max_seats: 40,
     room_type: "NORMAL",

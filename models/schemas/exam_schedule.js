@@ -13,7 +13,7 @@ const examScheduleSchema = new Schema(
         attendance: { type: Boolean, default: false },
       },
     ],
-    subject: { type: String, required: true },
+    subject: { type: Types.ObjectId, required: true, ref: "Subject" },
     term: { type: Number, required: true },
     year: {
       from: { type: Number, required: true },

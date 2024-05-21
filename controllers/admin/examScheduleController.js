@@ -3,6 +3,7 @@ const ExamSchedules = require("../../models/schemas/exam_schedule");
 const Student = require("../../models/schemas/student");
 const Inspector = require("../../models/schemas/inspector");
 const Room = require("../../models/schemas/room");
+const Subject = require("../../models/schemas/subject");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
 const xlsx = require("xlsx");
@@ -130,6 +131,7 @@ const importExamSchedulesExcel = async (req, res, next) => {
     // Chọn sheet đầu tiên
     const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
+
     res.json({ message: "success" });
   } catch (err) {
     console.error("admin import exam schedules----------- ", err);
@@ -141,7 +143,7 @@ const importExamSchedulesExcel = async (req, res, next) => {
 const getExamSchedulesExcel = async (req, res, next) => {
   try {
     const workbook = xlsx.readFile(
-      "public/uploads/exam-schedules/1716179532662-DSSVDuThiAVDR_17.03.24.xls"
+      "public/uploads/exam-schedules/DSSVDuThiAVDR_17.03.24.xls"
     );
     // Chọn sheet đầu tiên
     const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
@@ -153,32 +155,70 @@ const getExamSchedulesExcel = async (req, res, next) => {
     for (let item of data) {
       if (item?.["C"] === "Ngày Thi :") {
         if (currentExam !== null) {
+          const students = await Student.find({
+            student_id: { $in: currentExam.students },
+          });
+
+          const examStudents = students.map((student, i) => {
+            return { student: student._id };
+          });
+
+          currentExam.students = examStudents;
+
           result.push(currentExam);
         }
-        let roomAndTime = item?.["E"]?.split(" - Phòng thi: ");
-        let termAndYear = data
+        const [time, room_name] = item?.["E"]?.split(" - Phòng thi: ");
+        const [term, year] = data
           .find((i) => i?.["A"] === "Học Kỳ 02 - Năm Học 2023-2024")
           ?.["A"]?.split(" - ");
+
+        const [datePart, timePart] = time.split(" - Giờ Thi: ");
+        const dateParts = datePart.split("/");
+        const timeParts = timePart.split(" -   phút - ")[0].split("g");
+
+        const start_time = new Date(
+          dateParts[2],
+          dateParts[1] - 1,
+          dateParts[0],
+          timeParts[0],
+          timeParts[1]
+        );
+
+        const room = await Room.findOne({ room_name: room_name });
+        const subject = await Subject.findOne({
+          subject_id: data.find((i) => i?.["C"] === "Mã Môn Học:")?.["E"],
+        });
+
         currentExam = {
-          room: roomAndTime?.[1],
-          start_time: roomAndTime?.[0]
-            ?.split(" - Giờ Thi: ")[1]
-            ?.split(" -   phút")[0],
-          term: termAndYear?.[0],
-          school_year: termAndYear?.[1],
-          subject: data.find((i) => i?.["C"] === "Môn Học: ")?.["E"],
+          room: room._id,
+          start_time: start_time,
+          term: term?.split(" Kỳ ")[1],
+          year: {
+            from: year?.split(" Học ")[1]?.split("-")[0],
+            to: year?.split(" Học ")[1]?.split("-")[1],
+          },
+          subject: subject._id,
           students: [],
         };
       } else if (item?.["B"] && typeof item["B"] === "number") {
-        currentExam.students.push({
-          student: item?.["D"],
-        });
+        currentExam.students.push(item?.["D"]);
       }
     }
 
     if (currentExam !== null) {
+      const students = await Student.find({
+        student_id: { $in: currentExam.students },
+      });
+
+      const examStudents = students.map((student, i) => {
+        return { student: student._id };
+      });
+
+      currentExam.students = examStudents;
       result.push(currentExam);
     }
+
+    await ExamSchedules.insertMany(result);
 
     res.json(result);
   } catch (err) {
