@@ -7,6 +7,8 @@ const Subject = require("../../models/schemas/subject");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
 const xlsx = require("xlsx");
+const fs = require("fs");
+const path = require("path");
 
 const importExamSchedules = async (req, res, next) => {
   try {
@@ -120,28 +122,35 @@ const importExamSchedules = async (req, res, next) => {
   }
 };
 
-const importExamSchedulesExcel = async (req, res, next) => {
+const importExamSchedulesExcels = async (req, res, next) => {
+  if (req.files.length > 0) {
+    console.log(req.files);
+    res.json({ message: "Upload success!" });
+  } else {
+    const error = new HttpError("No files has been upload!", 404);
+    return next(error);
+  }
+};
+
+const getFilesList = async (req, res, next) => {
+  const folderPath = path.join("public", "uploads", "exam-schedules");
+
   try {
-    // Kiểm tra sự tồn tại của các ID
-    const studentIds = new Set();
-    const inspectorIds = new Set();
-    const roomIds = new Set();
-
-    const workbook = xlsx.readFile(req.file.path);
-    // Chọn sheet đầu tiên
-    const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
-    const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
-
-    res.json({ message: "success" });
+    const files = fs.readdirSync(folderPath, { recursive: true });
+    res.json({ files: files });
   } catch (err) {
-    console.error("admin import exam schedules----------- ", err);
-    const error = new HttpError(err.message, 500);
+    console.log("error readir: ", err);
+    const error = new HttpError("Error occurred!", 500);
     return next(error);
   }
 };
 
 const getExamSchedulesExcel = async (req, res, next) => {
   try {
+    // Kiểm tra sự tồn tại của các ID
+    const studentIds = new Set();
+    const inspectorIds = new Set();
+    const roomIds = new Set();
     const workbook = xlsx.readFile(
       "public/uploads/exam-schedules/DSSVDuThiAVDR_17.03.24.xls"
     );
@@ -230,6 +239,7 @@ const getExamSchedulesExcel = async (req, res, next) => {
 
 module.exports = {
   importExamSchedules,
-  importExamSchedulesExcel,
+  importExamSchedulesExcels,
   getExamSchedulesExcel,
+  getFilesList,
 };

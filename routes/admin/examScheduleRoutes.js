@@ -13,11 +13,12 @@ router.post(
 );
 
 router.post(
-  "/excel-import",
-  uploadToFolderPath("exam-schedules").single("file"),
-  ExamScheduleController.importExamSchedulesExcel
+  "/excels-upload",
+  uploadToFolderPath("exam-schedules").array("file"),
+  ExamScheduleController.importExamSchedulesExcels
 );
 
 router.get("/excel-data-test", ExamScheduleController.getExamSchedulesExcel);
+router.get("/excel-files", ExamScheduleController.getFilesList);
 
 module.exports = router;
