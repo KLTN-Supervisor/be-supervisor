@@ -3,6 +3,7 @@ const ExamSchedule = require("../models/schemas/exam_schedule");
 const Room = require("../models/schemas/room");
 const Building = require("../models/schemas/building");
 const Student = require("../models/schemas/student");
+const Report = require("../models/schemas/report");
 
 const { validationResult } = require("express-validator");
 
@@ -155,7 +156,6 @@ const getStudentByRoom = async (req, res, next) => {
     console.log(examSchedules);
     let examStudents = [];
     for (const student of examSchedules.students) {
-      console.log(student);
       const examStudent = await Student.findOne({ _id: student.student });
       console.log("examStudent", examStudent);
       examStudents.push({
@@ -177,7 +177,7 @@ const getSuspiciousStudents = async (req, res, next) => {
 
     const examSchedules = await ExamSchedule.find({
       start_time: {
-        $gte: new Date(year, month - 1, day , 0, 0, 0),
+        $gte: new Date(year, month - 1, day, 0, 0, 0),
         $lt: new Date(year, month - 1, day + 1, 0, 0, 0),
       },
     });
@@ -185,9 +185,9 @@ const getSuspiciousStudents = async (req, res, next) => {
     // Tạo một đối tượng để lưu trữ các sinh viên và các lịch thi của họ
     const frequencyMap = {};
     // Duyệt qua từng lịch thi
-    examSchedules.forEach(exam => {
+    examSchedules.forEach((exam) => {
       // Duyệt qua từng sinh viên trong lịch thi
-      exam.students.forEach(student => {
+      exam.students.forEach((student) => {
         if (frequencyMap[student.student]) {
           frequencyMap[student.student]++;
         } else {
@@ -197,10 +197,11 @@ const getSuspiciousStudents = async (req, res, next) => {
       });
     });
 
-    
     // Tìm các phần tử có số lần xuất hiện lớn hơn 1 (tức là các phần tử trùng nhau)
-    const duplicateStudents = Object.keys(frequencyMap).filter(student => frequencyMap[student] > 1);
-    
+    const duplicateStudents = Object.keys(frequencyMap).filter(
+      (student) => frequencyMap[student] > 1
+    );
+
     let examStudents = [];
     for (const student of duplicateStudents) {
       // console.log(student);
@@ -210,12 +211,12 @@ const getSuspiciousStudents = async (req, res, next) => {
     }
     res.json(examStudents);
   } catch (err) {
-    return next(err)
+    return next(err);
   }
-}
+};
 
 const attendanceStudent = async (req, res, next) => {
-  try{
+  try {
     const date = req.query.date || "00/00/0000";
     const room = req.query.room;
     const studentId = req.query.studentId;
@@ -226,20 +227,50 @@ const attendanceStudent = async (req, res, next) => {
       {
         start_time: date,
         room: room,
-        "students.student": examStudent._id
+        "students.student": examStudent._id,
       },
       {
         $set: {
-          "students.$.attendance": attendance
-        }
+          "students.$.attendance": attendance,
+        },
       }
     );
-    if(updated)
-      res.json(true)
-  } catch (err){
-    return next(err)
+    if (updated) res.json(true);
+  } catch (err) {
+    return next(err);
   }
-}
+};
+
+const noteReport = async (req, res, next) => {
+  try {
+    const date = req.query.date || "00/00/0000";
+    const room = req.query.room;
+    const { reportType, note } = req.body;
+    const images = req.files;
+
+    const imagesPath = images.map((image, i) =>
+      image.path.replace("public\\uploads\\", "")
+    );
+
+    const examSchedule = await ExamSchedule.findOne({
+      start_time: date,
+      room: room,
+    });
+
+    const newReport = new Report({
+      note: note,
+      report_type: reportType.toUpperCase(),
+      time: examSchedule._id,
+      images: imagesPath,
+    });
+
+    await newReport.save();
+
+    res.json({ new_report: newReport });
+  } catch (err) {
+    return next(err);
+  }
+};
 
 exports.getExamYears = getExamYears;
 exports.getTermsOfYear = getTermsOfYear;
@@ -250,3 +281,4 @@ exports.getRoomByExamTime = getRoomByExamTime;
 exports.getStudentByRoom = getStudentByRoom;
 exports.getSuspiciousStudents = getSuspiciousStudents;
 exports.attendanceStudent = attendanceStudent;
+exports.noteReport = noteReport;

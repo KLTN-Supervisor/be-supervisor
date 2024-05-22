@@ -2,6 +2,8 @@ const express = require("express");
 const ExamScheduleController = require("../controllers/examScheduleController");
 const { check } = require("express-validator");
 const tokenHandler = require("../middlewares/token-handler");
+const { uploadToFolderPath } = require("../configs/multerConfig");
+const path = require("path");
 
 const router = express.Router();
 
@@ -17,5 +19,11 @@ router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
 router.get("/getSuspicious", ExamScheduleController.getSuspiciousStudents);
 router.put("/attendance", ExamScheduleController.attendanceStudent);
+
+router.post(
+  "/report",
+  uploadToFolderPath("report-images").array("image"),
+  ExamScheduleController.noteReport
+);
 
 module.exports = router;
