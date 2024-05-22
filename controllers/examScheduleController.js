@@ -172,14 +172,16 @@ const getStudentByRoom = async (req, res, next) => {
 
 const getSuspiciousStudents = async (req, res, next) => {
   try {
-    const targetDate = req.query.date || "00/00/0000";
+    const date = req.query.date || "00/00/0000";
+    const [day, month, year] = date.split("/").map(Number);
 
     const examSchedules = await ExamSchedule.find({
       start_time: {
-        $gte: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0),
-        $lt: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1, 0, 0, 0),
+        $gte: new Date(year, month - 1, day , 0, 0, 0),
+        $lt: new Date(year, month - 1, day + 1, 0, 0, 0),
       },
     });
+    console.log(examSchedules);
     // Tạo một đối tượng để lưu trữ các sinh viên và các lịch thi của họ
     const frequencyMap = {};
     // Duyệt qua từng lịch thi
@@ -201,13 +203,40 @@ const getSuspiciousStudents = async (req, res, next) => {
     
     let examStudents = [];
     for (const student of duplicateStudents) {
-      console.log(student);
+      // console.log(student);
       const examStudent = await Student.findOne({ _id: student });
-      console.log("examStudent", examStudent);
+      // console.log("examStudent", examStudent);
       examStudents.push(examStudent);
     }
     res.json(examStudents);
   } catch (err) {
+    return next(err)
+  }
+}
+
+const attendanceStudent = async (req, res, next) => {
+  try{
+    const date = req.query.date || "00/00/0000";
+    const room = req.query.room;
+    const studentId = req.query.studentId;
+    const attendance = req.query.attendance; // ID của Student
+
+    const examStudent = await Student.findOne({ student_id: studentId });
+    const updated = await ExamSchedule.updateOne(
+      {
+        start_time: date,
+        room: room,
+        "students.student": examStudent._id
+      },
+      {
+        $set: {
+          "students.$.attendance": attendance
+        }
+      }
+    );
+    if(updated)
+      res.json(true)
+  } catch (err){
     return next(err)
   }
 }
@@ -220,3 +249,4 @@ exports.getExamTimeByBuilding = getExamTimeByBuilding;
 exports.getRoomByExamTime = getRoomByExamTime;
 exports.getStudentByRoom = getStudentByRoom;
 exports.getSuspiciousStudents = getSuspiciousStudents;
+exports.attendanceStudent = attendanceStudent;
