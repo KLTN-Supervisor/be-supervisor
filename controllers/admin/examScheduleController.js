@@ -4,6 +4,7 @@ const Student = require("../../models/schemas/student");
 const Inspector = require("../../models/schemas/inspector");
 const Room = require("../../models/schemas/room");
 const Subject = require("../../models/schemas/subject");
+const UploadFile = require("../../models/schemas/uploadFile");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
 const xlsx = require("xlsx");
@@ -123,11 +124,26 @@ const importExamSchedules = async (req, res, next) => {
 };
 
 const importExamSchedulesExcels = async (req, res, next) => {
-  if (req.files.length > 0) {
-    console.log(req.files);
-    res.json({ message: "Upload success!" });
-  } else {
-    const error = new HttpError("No files has been upload!", 404);
+  try {
+    if (req.files.length > 0) {
+      const newFiles = req.files.map((file, i) => {
+        return {
+          file_name: file.originalname,
+          mimetype: file.mimetype,
+          type: "EXCEL",
+          file_path: file.path,
+        };
+      });
+      const uploadedFiles = await UploadFile.insertMany(newFiles);
+
+      res.json({ uploaded_files: uploadedFiles });
+    } else {
+      const error = new HttpError("No files has been upload!", 404);
+      return next(error);
+    }
+  } catch (err) {
+    console.log("upload files -------", err);
+    const error = new HttpError("Error occured, please try again!", 500);
     return next(error);
   }
 };
@@ -136,7 +152,7 @@ const getFilesList = async (req, res, next) => {
   const folderPath = path.join("public", "uploads", "exam-schedules");
 
   try {
-    const files = fs.readdirSync(folderPath, { recursive: true });
+    const files = await UploadFile.find().sort({ created_at: -1 });
     res.json({ files: files });
   } catch (err) {
     console.log("error readir: ", err);
@@ -145,15 +161,34 @@ const getFilesList = async (req, res, next) => {
   }
 };
 
-const getExamSchedulesExcel = async (req, res, next) => {
+const importExamSchedulesFromExcel = async (req, res, next) => {
+  const fileIds = req.body.chooseFiles;
+
+  try {
+    const files = await UploadFile.find({ _id: { $in: fileIds } });
+
+    for (const file of files) {
+      const result = await readFileDataFromExcel(file.file_path);
+      await ExamSchedules.insertMany(result);
+      file.has_used = true;
+      await file.save();
+    }
+    console.log("import success: ", files);
+    res.json({ message: "Import success" });
+  } catch (err) {
+    console.error("admin import exam schedules----------- ", err);
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+};
+
+const readFileDataFromExcel = async (path) => {
   try {
     // Kiểm tra sự tồn tại của các ID
     const studentIds = new Set();
     const inspectorIds = new Set();
     const roomIds = new Set();
-    const workbook = xlsx.readFile(
-      "public/uploads/exam-schedules/DSSVDuThiAVDR_17.03.24.xls"
-    );
+    const workbook = xlsx.readFile(path);
     // Chọn sheet đầu tiên
     const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
@@ -226,20 +261,15 @@ const getExamSchedulesExcel = async (req, res, next) => {
       currentExam.students = examStudents;
       result.push(currentExam);
     }
-
-    await ExamSchedules.insertMany(result);
-
-    res.json(result);
+    return result;
   } catch (err) {
-    console.error("admin import exam schedules----------- ", err);
-    const error = new HttpError(err.message, 500);
-    return next(error);
+    throw err;
   }
 };
 
 module.exports = {
   importExamSchedules,
   importExamSchedulesExcels,
-  getExamSchedulesExcel,
+  importExamSchedulesFromExcel,
   getFilesList,
 };

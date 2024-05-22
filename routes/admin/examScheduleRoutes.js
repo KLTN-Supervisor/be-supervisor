@@ -18,7 +18,10 @@ router.post(
   ExamScheduleController.importExamSchedulesExcels
 );
 
-router.get("/excel-data-test", ExamScheduleController.getExamSchedulesExcel);
+router.post(
+  "/excel-import",
+  ExamScheduleController.importExamSchedulesFromExcel
+);
 router.get("/excel-files", ExamScheduleController.getFilesList);
 
 module.exports = router;
