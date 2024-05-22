@@ -252,6 +252,10 @@ const updateStudentFields = async (id, updateFields) => {
 const updateStudent = async (req, res, next) => {
   const id = req.params.id;
   const updateFields = req.body; // Chứa các trường cần cập nhật
+  const image = req.file;
+
+  console.log("image: ", image);
+  console.log("updateFields: ", updateFields);
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -277,6 +281,7 @@ const updateStudent = async (req, res, next) => {
 
   try {
     const student = await updateStudentFields(id, transformedFields);
+    console.log(student);
     res.json({ student: student });
   } catch (err) {
     return next(err);
