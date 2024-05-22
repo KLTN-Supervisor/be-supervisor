@@ -61,11 +61,7 @@ app.use(express.json());
 // Sử dụng body-parser middleware
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
-app.use(
-  express.static(
-    path.resolve(__dirname, "public", "uploads", "students-images")
-  )
-);
+app.use(express.static(path.resolve(__dirname, "public", "uploads")));
 
 app.use("/api", route);
 

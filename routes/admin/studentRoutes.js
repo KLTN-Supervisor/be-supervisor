@@ -3,6 +3,7 @@ const { uploadToFolderPath } = require("../../configs/multerConfig");
 const StudentController = require("../../controllers/admin/studentController");
 const { check } = require("express-validator");
 const tokenHandler = require("../../middlewares/token-handler");
+const path = require("path");
 
 const router = express.Router();
 
@@ -19,7 +20,9 @@ router.post(
 );
 router.put(
   "/:id",
-  uploadToFolderPath("portrait-images/student-images").single("file"),
+  uploadToFolderPath(path.join("portrait-images", "student-images")).single(
+    "image"
+  ),
   StudentController.updateStudent
 );
 

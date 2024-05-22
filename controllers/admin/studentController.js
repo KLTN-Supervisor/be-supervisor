@@ -254,8 +254,25 @@ const updateStudent = async (req, res, next) => {
   const updateFields = req.body; // Chứa các trường cần cập nhật
   const image = req.file;
 
-  console.log("image: ", image);
-  console.log("updateFields: ", updateFields);
+  // Gộp các trường thành permanent_address
+  const permanent_address = {
+    city_or_province: updateFields.city_or_province,
+    district: updateFields.district,
+    address: updateFields.address,
+  };
+
+  // Xóa các trường không cần thiết
+  delete updateFields.city_or_province;
+  delete updateFields.district;
+  delete updateFields.address;
+
+  const fieldsToUpdate = {
+    ...updateFields,
+    permanent_address,
+  };
+
+  if (image)
+    fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -270,8 +287,8 @@ const updateStudent = async (req, res, next) => {
   //   "self_lock",
   //   "search_keyword",
   // ];
-  // Lọc và chỉ giữ lại các trường hợp lệ
-  const validUpdateFields = getValidFields(updateFields, []);
+  //Lọc và chỉ giữ lại các trường hợp lệ
+  const validUpdateFields = getValidFields(fieldsToUpdate, []);
 
   if (Object.keys(validUpdateFields).length === 0) {
     const error = new HttpError("Invalid input!", 422);
@@ -281,9 +298,9 @@ const updateStudent = async (req, res, next) => {
 
   try {
     const student = await updateStudentFields(id, transformedFields);
-    console.log(student);
     res.json({ student: student });
   } catch (err) {
+    console.log("update student: ", err);
     return next(err);
   }
 };
