@@ -170,6 +170,48 @@ const getStudentByRoom = async (req, res, next) => {
   }
 };
 
+const getSuspiciousStudents = async (req, res, next) => {
+  try {
+    const targetDate = req.query.date || "00/00/0000";
+
+    const examSchedules = await ExamSchedule.find({
+      start_time: {
+        $gte: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0),
+        $lt: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1, 0, 0, 0),
+      },
+    });
+    // Tạo một đối tượng để lưu trữ các sinh viên và các lịch thi của họ
+    const frequencyMap = {};
+    // Duyệt qua từng lịch thi
+    examSchedules.forEach(exam => {
+      // Duyệt qua từng sinh viên trong lịch thi
+      exam.students.forEach(student => {
+        if (frequencyMap[student.student]) {
+          frequencyMap[student.student]++;
+        } else {
+          // Nếu chưa xuất hiện, thêm phần tử vào frequencyMap với số lần xuất hiện là 1
+          frequencyMap[student.student] = 1;
+        }
+      });
+    });
+
+    
+    // Tìm các phần tử có số lần xuất hiện lớn hơn 1 (tức là các phần tử trùng nhau)
+    const duplicateStudents = Object.keys(frequencyMap).filter(student => frequencyMap[student] > 1);
+    
+    let examStudents = [];
+    for (const student of duplicateStudents) {
+      console.log(student);
+      const examStudent = await Student.findOne({ _id: student });
+      console.log("examStudent", examStudent);
+      examStudents.push(examStudent);
+    }
+    res.json(examStudents);
+  } catch (err) {
+    return next(err)
+  }
+}
+
 exports.getExamYears = getExamYears;
 exports.getTermsOfYear = getTermsOfYear;
 exports.getExamDatesByTerm = getExamDatesByTerm;
@@ -177,3 +219,4 @@ exports.getBuildingByDate = getBuildingByDate;
 exports.getExamTimeByBuilding = getExamTimeByBuilding;
 exports.getRoomByExamTime = getRoomByExamTime;
 exports.getStudentByRoom = getStudentByRoom;
+exports.getSuspiciousStudents = getSuspiciousStudents;

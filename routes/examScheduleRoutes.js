@@ -15,5 +15,6 @@ router.get("/getBuilding", ExamScheduleController.getBuildingByDate);
 router.get("/getTime", ExamScheduleController.getExamTimeByBuilding);
 router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
+router.get("/getSuspicious", ExamScheduleController.getSuspiciousStudents);
 
 module.exports = router;
