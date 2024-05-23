@@ -272,6 +272,39 @@ const noteReport = async (req, res, next) => {
   }
 };
 
+const getExamScheduleReport = async (req, res, next) => {
+  try {
+    const date = req.query.date || "00/00/0000";
+    const room = req.query.room;
+
+    const examSchedule = await ExamSchedule.findOne({
+      start_time: date,
+      room: room,
+    });
+
+    const reports = await Report.find({
+      time: examSchedule._id,
+    });
+
+
+    res.json(reports);
+  } catch (err) {
+    return next(err);
+  }
+};
+
+const deleteExamScheduleReport = async (req, res, next) => {
+  try {
+    const id = req.query.reportId;
+    await Report.deleteOne({
+      _id: id,
+    });
+    res.json(true);
+  } catch (err) {
+    return next(err);
+  }
+};
+
 exports.getExamYears = getExamYears;
 exports.getTermsOfYear = getTermsOfYear;
 exports.getExamDatesByTerm = getExamDatesByTerm;
@@ -282,3 +315,5 @@ exports.getStudentByRoom = getStudentByRoom;
 exports.getSuspiciousStudents = getSuspiciousStudents;
 exports.attendanceStudent = attendanceStudent;
 exports.noteReport = noteReport;
+exports.getExamScheduleReport = getExamScheduleReport;
+exports.deleteExamScheduleReport = deleteExamScheduleReport;

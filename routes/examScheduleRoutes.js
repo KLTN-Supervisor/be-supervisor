@@ -19,11 +19,22 @@ router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
 router.get("/getSuspicious", ExamScheduleController.getSuspiciousStudents);
 router.put("/attendance", ExamScheduleController.attendanceStudent);
+router.put(
+  "/deleteReport",
+  ExamScheduleController.deleteExamScheduleReport
+);
 
 router.post(
   "/report",
   uploadToFolderPath("report-images").array("image"),
   ExamScheduleController.noteReport
 );
+
+router.get(
+  "/getExamReports",
+  ExamScheduleController.getExamScheduleReport
+);
+
+
 
 module.exports = router;

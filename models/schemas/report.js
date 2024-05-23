@@ -10,7 +10,7 @@ const reportSchema = new Schema(
     time: { type: Types.ObjectId, ref: "Exam_shedule" },
     report_type: {
       type: String,
-      enum: ["ABSENCE", "FOUL", "OTHER"],
+      enum: ["PROBLEM", "REPORT"],
       required: true,
     },
   },
