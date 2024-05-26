@@ -25,5 +25,12 @@ router.put(
   ),
   StudentController.updateStudent
 );
+router.post(
+  "/",
+  uploadToFolderPath(path.join("portrait-images", "student-images")).single(
+    "image"
+  ),
+  StudentController.createStudent
+);
 
 module.exports = router;

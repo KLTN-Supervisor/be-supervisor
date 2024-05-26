@@ -31,11 +31,11 @@ const studentSchema = new Schema(
     email: { type: String, trim: true },
     phone: { type: String, minLength: 10, maxLength: 12 },
     high_school: { type: String },
-    student_type: { type: String, enum: ["FORMAL"], required: true },
+    student_type: { type: String, enum: ["FORMAL"], default: "FORMAL" },
     learning_status: {
       type: String,
       enum: ["LEARNING", "STOPPED", "PAUSE", "GRADUATED"],
-      required: true,
+      default: "LEARNING",
     },
     college: { type: String },
     nationality: { type: String, required: true },

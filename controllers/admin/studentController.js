@@ -226,6 +226,62 @@ const getStudentsPaginated = async (req, res, next) => {
   }
 };
 
+const createStudent = async (req, res, next) => {
+  try {
+    const formData = req.body;
+    const image = req.file;
+
+    // Tạo địa chỉ thường trú từ các trường city_or_province, district và address
+    const permanent_address = {
+      city_or_province: formData.city_or_province,
+      district: formData.district,
+      address: formData.address,
+    };
+
+    // Tách school_year thành các phần from, to, và tính year_end_training
+    const schoolYearParts = formData.school_year
+      .split("-")
+      .map((part) => part.trim());
+    const fromYear = parseInt(schoolYearParts[0], 10);
+    const toYear = parseInt(schoolYearParts[1], 10);
+    const yearEndTraining = fromYear + 8;
+
+    const school_year = {
+      from: fromYear,
+      to: toYear,
+      year_end_training: yearEndTraining,
+    };
+
+    // Tạo đối tượng sinh viên mới
+    const newStudent = new Student({
+      student_id: formData.student_id,
+      citizen_identification_number: formData.citizen_identification_number,
+      portrait_img: image ? image.path.replace("public\\uploads\\", "") : "",
+      first_name: formData.first_name,
+      middle_name: formData.middle_name,
+      last_name: formData.last_name,
+      date_of_birth: new Date(formData.date_of_birth),
+      place_of_birth: formData.place_of_birth,
+      gender: formData.gender,
+      nationality: formData.nationality,
+      permanent_address: permanent_address,
+      school_year: school_year,
+      education_program: formData.education_program,
+      class: formData.class,
+      current_address: formData.current_address,
+    });
+
+    // Lưu đối tượng sinh viên mới vào cơ sở dữ liệu
+    await newStudent.save();
+
+    res.status(201).json({ student: newStudent });
+  } catch (err) {
+    console.log("Lỗi tạo mới sinh viên: ", err);
+    const error = new HttpError("Error occured!", 500);
+    return next(error);
+  }
+};
+
 const updateStudentFields = async (id, updateFields) => {
   try {
     // Sử dụng findOneAndUpdate để cập nhật nhiều trường
@@ -261,6 +317,20 @@ const updateStudent = async (req, res, next) => {
     address: updateFields.address,
   };
 
+  // Tách các giá trị từ school_year
+  const schoolYearParts = updateFields.school_year
+    .split("-")
+    .map((part) => part.trim());
+  const fromYear = parseInt(schoolYearParts[0], 10);
+  const toYear = parseInt(schoolYearParts[1], 10);
+  const yearEndTraining = fromYear + 8;
+
+  const school_year = {
+    from: fromYear,
+    to: toYear,
+    year_end_training: yearEndTraining,
+  };
+
   // Xóa các trường không cần thiết
   delete updateFields.city_or_province;
   delete updateFields.district;
@@ -269,6 +339,7 @@ const updateStudent = async (req, res, next) => {
   const fieldsToUpdate = {
     ...updateFields,
     permanent_address,
+    school_year,
   };
 
   if (image)
@@ -301,7 +372,8 @@ const updateStudent = async (req, res, next) => {
     res.json({ student: student });
   } catch (err) {
     console.log("update student: ", err);
-    return next(err);
+    const error = new HttpError("Error occured!", 500);
+    return next(error);
   }
 };
 
@@ -310,4 +382,5 @@ module.exports = {
   getStudentsPaginated,
   handleUncompressFile,
   updateStudent,
+  createStudent,
 };

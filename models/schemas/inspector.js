@@ -21,14 +21,14 @@ const inspectorSchema = new Schema(
       maxLength: 12,
       unique: true,
     },
-    portrait_img: { type: String, required: true },
+    portrait_img: { type: String, default: "" },
     first_name: { type: String, required: true, minLength: 1, maxLength: 8 },
     middle_name: { type: String, required: true, minLength: 2 },
     last_name: { type: String, required: true, minLength: 3, maxLength: 12 },
     date_of_birth: { type: Date, required: true },
     place_of_birth: { type: String, required: true },
     gender: { type: Boolean },
-    email: { type: String, required: true, trim: true, unique: true },
+    email: { type: String, trim: true, unique: true },
     phone: { type: String, minLength: 10, maxLength: 12 },
     nationality: { type: String, required: true },
     permanent_address: {
@@ -41,7 +41,7 @@ const inspectorSchema = new Schema(
     working_status: {
       type: String,
       enum: ["WORKING", "LEAVE_WORK", "BREAK_WORK", "SUSPENDED", "RETIREMENT"],
-      required: true,
+      default: "WORKING",
     },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }

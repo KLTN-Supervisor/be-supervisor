@@ -8,6 +8,7 @@ const path = require("path");
 const StreamZip = require("node-stream-zip");
 const unrar = require("node-unrar-js");
 const { transformObjectFields } = require("../../utils/objectFunctions");
+const { getValidFields } = require("../../utils/validators");
 
 const importInpectors = async (req, res, next) => {
   try {
@@ -222,9 +223,69 @@ const updateInspectorFields = async (id, updateFields) => {
   }
 };
 
+const createInspector = async (req, res, next) => {
+  try {
+    const formData = req.body;
+    const image = req.file;
+
+    // Tạo địa chỉ thường trú từ các trường city_or_province, district và address
+    const permanent_address = {
+      city_or_province: formData.city_or_province,
+      district: formData.district,
+      address: formData.address,
+    };
+
+    // Tạo đối tượng sinh viên mới
+    const newInspector = new Inspector({
+      inspector_id: formData.inspector_id,
+      citizen_identification_number: formData.citizen_identification_number,
+      portrait_img: image ? image.path.replace("public\\uploads\\", "") : "",
+      first_name: formData.first_name,
+      middle_name: formData.middle_name,
+      last_name: formData.last_name,
+      date_of_birth: new Date(formData.date_of_birth),
+      place_of_birth: formData.place_of_birth,
+      gender: formData.gender,
+      nationality: formData.nationality,
+      permanent_address: permanent_address,
+      current_address: formData.current_address,
+    });
+
+    // Lưu đối tượng sinh viên mới vào cơ sở dữ liệu
+    await newInspector.save();
+
+    res.status(201).json({ inspector: newInspector });
+  } catch (err) {
+    console.log("Lỗi tạo mới thanh tra: ", err);
+    const error = new HttpError("Error occured!", 500);
+    return next(error);
+  }
+};
+
 const updateInspector = async (req, res, next) => {
   const id = req.params.id;
   const updateFields = req.body; // Chứa các trường cần cập nhật
+  const image = req.file;
+
+  // Gộp các trường thành permanent_address
+  const permanent_address = {
+    city_or_province: updateFields.city_or_province,
+    district: updateFields.district,
+    address: updateFields.address,
+  };
+
+  // Xóa các trường không cần thiết
+  delete updateFields.city_or_province;
+  delete updateFields.district;
+  delete updateFields.address;
+
+  const fieldsToUpdate = {
+    ...updateFields,
+    permanent_address,
+  };
+
+  if (image)
+    fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -252,7 +313,9 @@ const updateInspector = async (req, res, next) => {
     const inspector = await updateInspectorFields(id, transformedFields);
     res.json({ inspector: inspector });
   } catch (err) {
-    return next(err);
+    console.log("update inspector: ", err);
+    const error = new HttpError("Error occured!", 500);
+    return next(error);
   }
 };
 
@@ -261,4 +324,5 @@ module.exports = {
   getInspectorsPaginated,
   handleUncompressFile,
   updateInspector,
+  createInspector,
 };
