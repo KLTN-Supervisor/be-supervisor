@@ -29,7 +29,7 @@ const getExamYears = async (req, res, next) => {
 
     const years = examSchedules.map((examSchedule) => {
       const startYear = examSchedule.start_time.getFullYear(); // Lấy năm từ trường start_time
-      const termYear = startYear + examSchedule.term; // Tính toán năm từ trường term
+      const termYear = examSchedule.term; // Tính toán năm từ trường term
       if (termYear > 1) return startYear - 1;
       else return startYear;
     });
@@ -37,7 +37,6 @@ const getExamYears = async (req, res, next) => {
     const uniqueYears = years.filter(
       (year, index) => years.indexOf(year) === index
     );
-    console.log(uniqueYears);
 
     res.json(uniqueYears);
   } catch (error) {
@@ -285,7 +284,6 @@ const getExamScheduleReport = async (req, res, next) => {
     const reports = await Report.find({
       time: examSchedule._id,
     });
-
 
     res.json(reports);
   } catch (err) {

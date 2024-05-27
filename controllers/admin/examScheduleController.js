@@ -1,8 +1,9 @@
 const HttpError = require("../../models/application/httpError");
-const ExamSchedules = require("../../models/schemas/exam_schedule");
+const ExamSchedule = require("../../models/schemas/exam_schedule");
 const Student = require("../../models/schemas/student");
 const Inspector = require("../../models/schemas/inspector");
 const Room = require("../../models/schemas/room");
+const Report = require("../../models/schemas/report");
 const Subject = require("../../models/schemas/subject");
 const UploadFile = require("../../models/schemas/uploadFile");
 const { validationResult } = require("express-validator");
@@ -86,7 +87,7 @@ const importExamSchedules = async (req, res, next) => {
 
       if (allIdsValid) {
         // Chỉ chèn dữ liệu vào cơ sở dữ liệu nếu tất cả các ID đều hợp lệ
-        await ExamSchedules.insertMany(csvdata);
+        await ExamSchedule.insertMany(csvdata);
         res.json({ message: "Import success!" });
       } else {
         // Ghi ra các ID không hợp lệ
@@ -169,7 +170,7 @@ const importExamSchedulesFromExcel = async (req, res, next) => {
 
     for (const file of files) {
       const result = await readFileDataFromExcel(file.file_path);
-      await ExamSchedules.insertMany(result);
+      await ExamSchedule.insertMany(result);
       file.has_used = true;
       await file.save();
     }
@@ -267,9 +268,38 @@ const readFileDataFromExcel = async (path) => {
   }
 };
 
+const getExamScheduleReport = async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year);
+    const startOfYear = new Date(`${year}-10-02`);
+    const endOfYear = new Date(`${year + 1}-10-01`);
+    const term = parseInt(req.query.term) || 1;
+
+    const examSchedules = await ExamSchedule.find({
+      term: term,
+      start_time: { $gte: startOfYear, $lte: endOfYear },
+    });
+
+    const esIds = examSchedules.map((examSchedule, i) => examSchedule._id);
+
+    const reports = await Report.find({ time: { $in: esIds } }).populate({
+      path: "time",
+      select: "room subject start_time",
+      populate: [{ path: "room" }, { path: "subject" }],
+    });
+
+    res.json({ reports: reports });
+  } catch (err) {
+    console.log(err);
+    const error = new HttpError("Error occured!", 500);
+    return next(error);
+  }
+};
+
 module.exports = {
   importExamSchedules,
   importExamSchedulesExcels,
   importExamSchedulesFromExcel,
   getFilesList,
+  getExamScheduleReport,
 };
