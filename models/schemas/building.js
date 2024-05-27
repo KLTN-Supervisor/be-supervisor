@@ -19,4 +19,6 @@ const buildingSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 buildingSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Building", buildingSchema);
+const Building = mongoose.model("Building", buildingSchema);
+
+module.exports = Building;

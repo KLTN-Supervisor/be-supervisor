@@ -22,4 +22,6 @@ const uploadFileSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 uploadFileSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("UploadFile", uploadFileSchema);
+const UploadFile = mongoose.model("UploadFile", uploadFileSchema);
+
+module.exports = UploadFile;

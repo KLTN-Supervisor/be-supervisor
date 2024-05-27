@@ -60,4 +60,6 @@ const studentSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 studentSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Student", studentSchema);
+const Student = mongoose.model("Student", studentSchema);
+
+module.exports = Student;

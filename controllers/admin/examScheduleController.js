@@ -269,11 +269,14 @@ const readFileDataFromExcel = async (path) => {
 };
 
 const getExamScheduleReport = async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 15;
+  const year = parseInt(req.query.year);
+  const term = parseInt(req.query.term) || 1;
   try {
-    const year = parseInt(req.query.year);
+    const skip = (page - 1) * limit;
     const startOfYear = new Date(`${year}-10-02`);
     const endOfYear = new Date(`${year + 1}-10-01`);
-    const term = parseInt(req.query.term) || 1;
 
     const examSchedules = await ExamSchedule.find({
       term: term,
@@ -282,13 +285,24 @@ const getExamScheduleReport = async (req, res, next) => {
 
     const esIds = examSchedules.map((examSchedule, i) => examSchedule._id);
 
-    const reports = await Report.find({ time: { $in: esIds } }).populate({
-      path: "time",
-      select: "room subject start_time",
-      populate: [{ path: "room" }, { path: "subject" }],
-    });
+    const reports = await Report.find({ time: { $in: esIds } })
+      .populate({
+        path: "time",
+        select: "room subject start_time",
+        populate: [{ path: "room" }, { path: "subject" }],
+      })
+      .sort({ updated_at: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.json({ reports: reports });
+    const totalRecords = await Report.countDocuments({ time: { $in: esIds } });
+
+    res.json({
+      reports: reports,
+      current_page: page,
+      total_pages: Math.ceil(totalRecords / limit),
+      total_records: totalRecords,
+    });
   } catch (err) {
     console.log(err);
     const error = new HttpError("Error occured!", 500);

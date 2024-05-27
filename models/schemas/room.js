@@ -28,4 +28,6 @@ const roomSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 roomSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Room", roomSchema);
+const Room = mongoose.model("Room", roomSchema);
+
+module.exports = Room;

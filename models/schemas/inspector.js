@@ -50,4 +50,6 @@ const inspectorSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 inspectorSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Inspector", inspectorSchema);
+const Inspector = mongoose.model("Inspector", inspectorSchema);
+
+module.exports = Inspector;

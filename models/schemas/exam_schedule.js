@@ -33,4 +33,6 @@ const examScheduleSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 examScheduleSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Exam_shedule", examScheduleSchema);
+const ExamSchedule = mongoose.model("Exam_shedule", examScheduleSchema);
+
+module.exports = ExamSchedule;

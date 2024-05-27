@@ -14,4 +14,6 @@ const subjectSchema = new Schema(
 //Plugins, methods, middlewares, statics, query helpers
 subjectSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model("Subject", subjectSchema);
+const Subject = mongoose.model("Subject", subjectSchema);
+
+module.exports = Subject;
