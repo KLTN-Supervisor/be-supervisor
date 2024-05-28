@@ -23,5 +23,16 @@ router.post(
   ],
   AccountController.createAccount
 );
+router.put(
+  "/",
+  uploadToFolderPath("user-avatars").single("avatar"),
+  [
+    createLengthValidator("username", 5, 15),
+    createLengthValidator("password", 5, 20),
+    createSpecialCharValidator("fullname"),
+    createEnumValidator("role", ["USER", "ADMIN", "ACADEMIC_AFFAIRS_OFFICE"]),
+  ],
+  AccountController.updateAccount
+);
 
 module.exports = router;
