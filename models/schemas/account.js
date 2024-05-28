@@ -5,23 +5,6 @@ const HttpError = require("../application/httpError");
 
 const { Schema, Types } = mongoose;
 
-const userInfoSchema = new Schema(
-  {
-    bio: { type: String, default: "", maxLength: 150 },
-    date_of_birth: { type: Date },
-    gender: { type: Boolean },
-    email: { type: String, required: true, unique: true, trim: true },
-    phone: { type: String, minLength: 10, maxLength: 12 },
-    job: { type: String },
-    workplace: { type: String },
-    high_school: { type: String },
-    college: { type: String },
-    current_city: { type: String },
-    hometown: { type: String },
-  },
-  { _id: false }
-);
-
 const userSettingSchema = new Schema(
   {
     notification_setting: { type: String },
@@ -44,12 +27,16 @@ const accountSchema = new Schema(
     password: { type: String, required: true, minLength: 4, select: false },
     full_name: { type: String, required: true },
     search_keyword: { type: String, required: true, default: "" },
-    profile_picture: { type: String, trim: true, default: "" },
-    inspector: { type: Types.ObjectId, required: true, ref: "Inspector" },
+    avatar: { type: String, trim: true, default: "" },
+    inspector: { type: Types.ObjectId, ref: "Inspector" },
     online: { type: Boolean },
     last_online: { type: Date, default: new Date() },
     banned: { type: Boolean, required: true, default: false },
-    admin: { type: Boolean, required: true, default: false },
+    role: {
+      type: String,
+      enum: ["USER", "ADMIN", "ACADEMIC_AFFAIRS_OFFICE"],
+      default: "USER",
+    },
     reset_token: { type: String },
     deleted_by: {
       user: { type: Types.ObjectId, ref: "User" },

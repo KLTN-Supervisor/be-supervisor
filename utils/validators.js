@@ -47,4 +47,40 @@ let validatePagination = () => {
   ];
 };
 
-module.exports = { validatePagination, getValidFields };
+const createLengthValidator = (field, minLength, maxLength) => {
+  return check(field)
+    .trim()
+    .isLength({ min: minLength, max: maxLength })
+    .withMessage(
+      `${field} must be between ${minLength} and ${maxLength} characters`
+    )
+    .not()
+    .isEmpty()
+    .withMessage(`${field} is required`);
+};
+
+const createEnumValidator = (field, checkEnum) => {
+  return check(field)
+    .trim()
+    .toUpperCase()
+    .isIn(checkEnum)
+    .withMessage(`${field} must be one of ${checkEnum}`);
+};
+
+const createSpecialCharValidator = (field) => {
+  return check(field)
+    .trim()
+    .not()
+    .isEmpty()
+    .withMessage(`${field} is required`)
+    .matches(/^[a-zA-ZÀ-ỹ\s]*$/)
+    .withMessage(`${field} must not contain special characters`);
+};
+
+module.exports = {
+  validatePagination,
+  getValidFields,
+  createLengthValidator,
+  createEnumValidator,
+  createSpecialCharValidator,
+};
