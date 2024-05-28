@@ -120,51 +120,50 @@ const signUp = async (req, res, next) => {
 const login = async (req, res, next) => {
   const { username, password } = req.body;
 
-  let existingUser;
   try {
-    existingUser = await User.findOne({
+    const existingUser = await Account.findOne({
       username: username,
-      admin: false,
     }).select("+password");
-  } catch (err) {
-    const error = new HttpError("Có lỗi xảy ra, vui lòng thử lại sau!", 500);
-    return next(error);
-  }
 
-  if (!existingUser) {
-    const error = new HttpError("Tên đăng nhập hoặc mật khẩu không đúng!", 401);
-    return next(error);
-  }
+    if (!existingUser) {
+      const error = new HttpError("Username or password is incorrect!", 401);
+      return next(error);
+    }
 
-  if (existingUser.banned) {
-    const error = new HttpError(
-      "Tài khoản đã bị admin khóa, vui lòng liên hệ với admin!",
-      403
+    if (existingUser.banned) {
+      const error = new HttpError(
+        "Account has been banned, please contact admin!",
+        403
+      );
+      return next(error);
+    }
+
+    const isValidPassword = await existingUser.comparePassword(password);
+
+    if (!isValidPassword) {
+      const error = new HttpError("Username or password is incorrect!", 401);
+      return next(error);
+    }
+
+    const accessToken = tokenHandler.generateToken(
+      existingUser,
+      "access",
+      "7h"
     );
-    return next(error);
-  }
-
-  let isValidPassword;
-  try {
-    isValidPassword = await existingUser.comparePassword(password);
-  } catch (err) {
-    const error = new HttpError(
-      "Có lỗi khi đăng nhập, vui lòng thử lại sau!",
-      500
+    const refreshToken = tokenHandler.generateToken(
+      existingUser,
+      "refresh",
+      "7d"
     );
-    return next(error);
-  }
 
-  if (!isValidPassword) {
-    const error = new HttpError("Tên đăng nhập hoặc mật khẩu không đúng!", 401);
-    return next(error);
-  }
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true, // access only by webserver
+      secure: true, // https
+      sameSite: "None", // cross-site cookie
+      maxAge: 1000 * 60 * 60 * 24 * 7, // cookie expiry: set to match rT
+    });
 
-  let accessToken;
-  let refreshToken;
-  try {
-    accessToken = tokenHandler.generateToken(existingUser, "access", "7h");
-    refreshToken = tokenHandler.generateToken(existingUser, "refresh", "7d");
+    res.json({ accessToken: accessToken });
   } catch (err) {
     const error = new HttpError(
       "Có lỗi trong quá trình đăng nhập, vui lòng thử lại sau!",
@@ -172,15 +171,6 @@ const login = async (req, res, next) => {
     );
     return next(error);
   }
-
-  res.cookie("jwt", refreshToken, {
-    httpOnly: true, // access only by webserver
-    secure: true, // https
-    sameSite: "None", // cross-site cookie
-    maxAge: 1000 * 60 * 60 * 24 * 7, // cookie expiry: set to match rT
-  });
-
-  res.json({ accessToken: accessToken });
 };
 
 const aLogin = async (req, res, next) => {
@@ -263,9 +253,9 @@ const refresh = async (req, res, next) => {
     const error = new HttpError("Có lỗi khi xác thực!", 403);
     return next(error);
   }
-  let accessToken;
+
   try {
-    const existingUser = await User.findById(decodedToken.id).select(
+    const existingUser = await Account.findById(decodedToken.id).select(
       "+password"
     );
 
@@ -279,13 +269,16 @@ const refresh = async (req, res, next) => {
       return next(error);
     }
 
-    accessToken = tokenHandler.generateToken(existingUser, "access", "7h");
+    const accessToken = tokenHandler.generateToken(
+      existingUser,
+      "access",
+      "7h"
+    );
+    res.json({ accessToken: accessToken });
   } catch (err) {
     const error = new HttpError("Có lỗi xảy ra, vui lòng thử lại sau!", 500);
     return next(error);
   }
-
-  res.json({ accessToken: accessToken });
 };
 
 const logout = (req, res) => {

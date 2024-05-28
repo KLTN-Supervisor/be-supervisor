@@ -7,7 +7,7 @@ const Account = require("../models/schemas/account");
 
 const generateToken = (user, key = "access", expiredTime = "120") => {
   return jwt.sign(
-    { id: user._id, pw: user.password, fn: user.full_name, admin: user.admin },
+    { id: user._id, pw: user.password, fn: user.full_name, role: user.role },
     key === "access"
       ? process.env.ACCESS_TOKEN_SECRET
       : process.env.REFRESH_TOKEN_SECRET,
@@ -106,7 +106,7 @@ const verifyAdminAccessToken = async (req, res, next) => {
 
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    if (!decodedToken.admin) {
+    if (!decodedToken.role === "USER") {
       const error = new HttpError("Không có quyền truy cập!", 403);
       return next(error);
     }
