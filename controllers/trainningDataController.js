@@ -6,6 +6,8 @@ const faceapi = require('face-api.js')
 const canvas = require('canvas')
 const { Canvas, Image } = require('canvas');
 const directoryPath = './public/uploads/students-images';
+const Student = require("../models/schemas/student");
+const sendMail = require("../utils/email");
 
 
 const trainingFunc = async (studentUrl) => {
@@ -42,47 +44,64 @@ const trainStudent = async (studentLabel) => {
 async function saveFile(filename, data) {
   try {
     await fs.promises.writeFile(filename, data);
-    console.log(`Face descriptors saved to ${filename}`);
+    // console.log(`Face descriptors saved to ${filename}`);
   } catch (error) {
     console.error('Error saving face descriptors:', error);
   }
   }
 
 const trainingData = async (req, res, next) => {
-    try {
-        await Promise.all([
-            // THIS FOR FACE DETECT AND LOAD FROM YOU PUBLIC/MODELS DIRECTORY
-            faceapi.nets.ssdMobilenetv1.loadFromDisk("./public/models"),
-            faceapi.nets.faceLandmark68Net.loadFromDisk("./public/models"),
-            faceapi.nets.faceRecognitionNet.loadFromDisk("./public/models"),
-        ])
-        fs.readdir(directoryPath, async (err, files) => {
-            if (err) {
-              console.error('Error reading directory:', err);
-              return;
-            }
-          
-            const folders = files.filter((file) => {
-              const filePath = path.join(directoryPath, file);
-              return fs.statSync(filePath).isDirectory();
-            });
-            let faceDescriptors = []
-            for(const folder of folders){
-                const descriptor = await trainStudent(folder);
-                faceDescriptors.push(descriptor);
-            }
-            console.log(faceDescriptors);
-            saveFile(
-              'labeledFacesData.json',
-              JSON.stringify(faceDescriptors.map((x) => x.toJSON())),
-            );
-            res.json(faceDescriptors);
+  try {
+      await Promise.all([
+          // THIS FOR FACE DETECT AND LOAD FROM YOU PUBLIC/MODELS DIRECTORY
+          faceapi.nets.ssdMobilenetv1.loadFromDisk("./public/models"),
+          faceapi.nets.faceLandmark68Net.loadFromDisk("./public/models"),
+          faceapi.nets.faceRecognitionNet.loadFromDisk("./public/models"),
+      ])
+      let trainedStudents = []
+      fs.readdir(directoryPath, async (err, files) => {
+          if (err) {
+            console.error('Error reading directory:', err);
+            return;
+          }
+          const folders = files.filter((file) => {
+            const filePath = path.join(directoryPath, file);
+            return fs.statSync(filePath).isDirectory();
           });
+          let faceDescriptors = []
+          for(const folder of folders){
+              trainedStudents.push(folder.toString())
+              const descriptor = await trainStudent(folder);
+              faceDescriptors.push(descriptor);
+          }
+          
+          if(trainedStudents){
+            await Student.find({
+              student_id: { $nin: trainedStudents }, // Find students whose email is not in the trainedStudents array
+              learning_status: 'LEARNING' // Filter for students with 'LEARNING' status
+            })
+            .select('email') // Only select the email field
+            .then(students => {
+              for(const student of students){
+                const message = `Sinh viên gửi hình cho phòng đào tạo \n Nếu đã gửi hãy bỏ qua tin nhắn này`;
+                const subject = `Cảnh báo thiếu hình trên hệ thống`;
+                sendMail ({ mailto: student.email, subject: subject, emailMessage: message });
+              }
+              
+            })
+          }
+          saveFile(
+            'labeledFacesData.json',
+            JSON.stringify(faceDescriptors.map((x) => x.toJSON())),
+          );
+          res.json(faceDescriptors);
+        });
         
-    }catch (error){
-        console.log(error);
-        return next(error);
-    }
+      
+  }catch (error){
+      console.log(error);
+      return next(error);
+  }
 }
 
 const getTrainningData = async (req, res, next) => {
