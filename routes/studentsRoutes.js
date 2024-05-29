@@ -5,8 +5,8 @@ const tokenHandler = require("../middlewares/token-handler");
 
 const router = express.Router();
 
-// // routes need access token
-// router.use(tokenHandler.verifyAccessToken);
+// routes need access token
+router.use(tokenHandler.verifyAccessToken);
 
 router.post("/create", StudentController.createStudent);
 router.get("/search", StudentController.searchStudents);

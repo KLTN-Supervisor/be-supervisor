@@ -7,6 +7,9 @@ const path = require("path");
 
 const router = express.Router();
 
+// routes need access token
+router.use(tokenHandler.verifyAdminAccessToken);
+
 router.get("/", StudentController.getStudentsPaginated);
 router.post(
   "/csv-import",

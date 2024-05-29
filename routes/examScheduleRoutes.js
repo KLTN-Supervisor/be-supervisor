@@ -7,8 +7,8 @@ const path = require("path");
 
 const router = express.Router();
 
-// // routes need access token
-// router.use(tokenHandler.verifyAccessToken);
+// routes need access token
+router.use(tokenHandler.verifyAccessToken);
 
 router.get("/getYear", ExamScheduleController.getExamYears);
 router.get("/getTerm", ExamScheduleController.getTermsOfYear);
@@ -19,10 +19,7 @@ router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
 router.get("/getSuspicious", ExamScheduleController.getSuspiciousStudents);
 router.put("/attendance", ExamScheduleController.attendanceStudent);
-router.put(
-  "/deleteReport",
-  ExamScheduleController.deleteExamScheduleReport
-);
+router.put("/deleteReport", ExamScheduleController.deleteExamScheduleReport);
 
 router.post(
   "/report",
@@ -30,11 +27,6 @@ router.post(
   ExamScheduleController.noteReport
 );
 
-router.get(
-  "/getExamReports",
-  ExamScheduleController.getExamScheduleReport
-);
-
-
+router.get("/getExamReports", ExamScheduleController.getExamScheduleReport);
 
 module.exports = router;

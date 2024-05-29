@@ -125,7 +125,7 @@ const verifyAdminAccessToken = async (req, res, next) => {
           secure: true,
         });
       }
-      const error = new HttpError("Phiên hoạt động hết hạn!", 401);
+      const error = new HttpError("Session expired!", 401);
       return next(error);
     } else {
       req.userData = decodedToken;

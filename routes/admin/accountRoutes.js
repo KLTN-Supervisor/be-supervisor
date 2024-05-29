@@ -11,6 +11,9 @@ const {
 
 const router = express.Router();
 
+// routes need access token
+router.use(tokenHandler.verifyAdminAccessToken);
+
 router.get("/", AccountController.getAccountsPaginated);
 router.post(
   "/",

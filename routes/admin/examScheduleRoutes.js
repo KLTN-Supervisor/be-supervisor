@@ -7,6 +7,9 @@ const tokenHandler = require("../../middlewares/token-handler");
 
 const router = express.Router();
 
+// routes need access token
+router.use(tokenHandler.verifyAdminAccessToken);
+
 router.post(
   "/csv-import",
   uploadToFolderPath("exam-schedules").single("file"),
