@@ -1,6 +1,7 @@
 const express = require("express");
 const { uploadToFolderPath } = require("../../configs/multerConfig");
 const StudentController = require("../../controllers/admin/studentController");
+const TrainningController = require("../../controllers/trainningDataController");
 const { check } = require("express-validator");
 const tokenHandler = require("../../middlewares/token-handler");
 const path = require("path");
@@ -35,5 +36,7 @@ router.post(
   ),
   StudentController.createStudent
 );
+
+router.get("/train", TrainningController.trainingData);
 
 module.exports = router;

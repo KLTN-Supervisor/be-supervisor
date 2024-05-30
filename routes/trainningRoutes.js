@@ -8,6 +8,5 @@ const router = express.Router();
 // routes need access token
 router.use(tokenHandler.verifyAccessToken);
 
-router.get("/train", TrainningController.trainingData);
 router.get("/", TrainningController.getTrainningData);
 module.exports = router;
