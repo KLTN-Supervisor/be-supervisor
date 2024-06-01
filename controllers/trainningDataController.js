@@ -61,32 +61,29 @@ const trainingData = async (req, res, next) => {
     ]);
 
     let trainedStudents = [];
-    const faceDescriptors = await fs.readdir(
-      directoryPath,
-      async (err, files) => {
-        if (err) {
-          console.error("Error reading directory:", err);
-          return;
-        }
-
-        const folders = files.filter((file) => {
-          const filePath = path.join(directoryPath, file);
-          return fs.statSync(filePath).isDirectory();
-        });
-
-        const descriptorPromises = folders.map(async (folder) => {
-          trainedStudents.push(folder.toString());
-          return await trainStudent(folder);
-        });
-
-        const descriptors = await Promise.all(descriptorPromises);
-        await saveFile(
-          "labeledFacesData.json",
-          JSON.stringify(descriptors.map((x) => x.toJSON()))
-        );
-        return descriptors;
+    const faceDescriptors = fs.readdir(directoryPath, async (err, files) => {
+      if (err) {
+        console.error("Error reading directory:", err);
+        return;
       }
-    );
+
+      const folders = files.filter((file) => {
+        const filePath = path.join(directoryPath, file);
+        return fs.statSync(filePath).isDirectory();
+      });
+
+      const descriptorPromises = folders.map(async (folder) => {
+        trainedStudents.push(folder.toString());
+        return await trainStudent(folder);
+      });
+
+      const descriptors = await Promise.all(descriptorPromises);
+      await saveFile(
+        "labeledFacesData.json",
+        JSON.stringify(descriptors.map((x) => x.toJSON()))
+      );
+      return descriptors;
+    });
 
     // await notifyMissingStudents(trainedStudents);
     res.json(faceDescriptors);
