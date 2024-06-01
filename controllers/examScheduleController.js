@@ -65,7 +65,7 @@ const getBuildingByDate = async (req, res, next) => {
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
     const date = new Date(year, month - 1, day + 1); // Tạo đối tượng Date từ ngày, tháng và năm
-    console.log(date);
+    //console.log(date);
 
     const roomIds = await ExamSchedule.find({
       $expr: {
@@ -75,7 +75,7 @@ const getBuildingByDate = async (req, res, next) => {
         ],
       },
     }).distinct("room");
-    console.log(roomIds);
+    //console.log(roomIds);
     const rooms = await Room.find({ _id: { $in: roomIds } });
     const buildingIds = rooms.map((room) => room.building);
     const buildings = await Building.find({ _id: { $in: buildingIds } });
@@ -110,7 +110,7 @@ const getExamTimeByBuilding = async (req, res, next) => {
     if (uniqueexamSchedules) {
       uniqueexamSchedules.forEach((examSchedule) => {
         const startTime = examSchedule.start_time;
-        console.log(startTime);
+        //console.log(startTime);
         times.push(startTime);
       });
     } else {
@@ -119,7 +119,7 @@ const getExamTimeByBuilding = async (req, res, next) => {
     const uniqueTimes = times
       .map((time) => time.toISOString()) // Chuyển đổi các đối tượng Date thành chuỗi ISO
       .filter((time, index, array) => array.indexOf(time) === index);
-    console.log(uniqueTimes);
+    //console.log(uniqueTimes);
     res.json(uniqueTimes);
   } catch (error) {
     return next(error);

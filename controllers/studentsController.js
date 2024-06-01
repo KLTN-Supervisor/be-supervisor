@@ -138,7 +138,7 @@ const searchStudents = async (req, res, next) => {
     const regex = new RegExp(searchText, "i");
     if (searchText) {
       if (type === "name") {
-        console.log("Toi day ne")
+        console.log("Toi day ne");
         const students = await Student.find({
           $or: [
             { first_name: regex },
@@ -150,7 +150,7 @@ const searchStudents = async (req, res, next) => {
           .skip(skip)
           .limit(16)
           .exec();
-        console.log(students)
+        //console.log(students)
         res.json(students);
       } else if (type === "id") {
         console.log("Toi day ch");
@@ -161,7 +161,7 @@ const searchStudents = async (req, res, next) => {
           .skip(skip)
           .limit(16)
           .exec();
-        console.log(students);
+        //console.log(students);
         res.json(students);
       }
     } else {

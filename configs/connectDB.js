@@ -13,7 +13,7 @@ exports.DBconnect = async (appStart) => {
       }
     })
     .catch((err) => {
-      console.log(err);
+      console.log("connect db: ", err);
       process.exit(1);
     });
 };
