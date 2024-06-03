@@ -137,7 +137,7 @@ const getRoomByExamTime = async (req, res, next) => {
     });
     const examRoomIds = examSchedules.map((exam) => exam.room);
     const examRooms = await Room.find({ _id: { $in: examRoomIds } });
-    console.log(examRooms);
+    //console.log(examRooms);
     res.json(examRooms);
   } catch (error) {
     return next(error);
@@ -152,11 +152,11 @@ const getStudentByRoom = async (req, res, next) => {
       start_time: date,
       room: room,
     });
-    console.log(examSchedules);
+    //console.log(examSchedules);
     let examStudents = [];
     for (const student of examSchedules.students) {
       const examStudent = await Student.findOne({ _id: student.student });
-      console.log("examStudent", examStudent);
+      //console.log("examStudent", examStudent);
       examStudents.push({
         student: examStudent,
         attendance: student.attendance,
@@ -180,7 +180,7 @@ const getSuspiciousStudents = async (req, res, next) => {
         $lt: new Date(year, month - 1, day + 1, 0, 0, 0),
       },
     });
-    console.log(examSchedules);
+    //console.log(examSchedules);
     // Tạo một đối tượng để lưu trữ các sinh viên và các lịch thi của họ
     const frequencyMap = {};
     // Duyệt qua từng lịch thi

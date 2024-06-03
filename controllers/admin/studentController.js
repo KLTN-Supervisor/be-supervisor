@@ -79,7 +79,7 @@ const handleUncompressFile = async (req, res, next) => {
   try {
     // Kiểm tra xem có file được upload hay không
     if (!req.file) {
-      const error = new HttpError("No file uploaded!", 400);
+      const error = new HttpError("Không tìm thấy file tải lên!", 400);
       return next(error);
     }
 
@@ -93,7 +93,7 @@ const handleUncompressFile = async (req, res, next) => {
       await extractRarArchive(filePath, targetPath);
     } else {
       const error = new HttpError(
-        "Unsupported file format. Please upload a .zip or .rar file!",
+        "Chỉ hỗ trợ file nén định dạng zip hoặc rar!",
         400
       );
       return next(error);
@@ -101,7 +101,7 @@ const handleUncompressFile = async (req, res, next) => {
 
     await organizeFilesById(targetPath);
 
-    res.json({ message: "Upload images success!" });
+    res.json({ message: "Tải hình ảnh lên thành công!" });
   } catch (err) {
     console.error("admin import students images----------- ", err);
     const error = new HttpError(err.message, 500);
@@ -118,19 +118,56 @@ const organizeFilesById = async (targetPath) => {
       const stats = await fs.promises.stat(filePath);
 
       if (stats.isFile()) {
-        const [id] = file.split("_");
-        const newDirPath = path.join(targetPath, id);
+        const [id, name] = file.split("_");
 
-        if (!fs.existsSync(newDirPath)) {
-          await fs.promises.mkdir(newDirPath);
+        if (name === "avatar") {
+          const newDirPath = path.join(
+            "public",
+            "uploads",
+            "portrait-images",
+            "student-images"
+          );
+          if (!fs.existsSync(newDirPath)) {
+            await fs.promises.mkdir(newDirPath);
+          }
+
+          const newFilePath = path.join(newDirPath, file);
+          await fs.promises.rename(filePath, newFilePath);
+
+          const updatedAvatar = {
+            portrait_img: newFilePath.replace("public\\uploads\\", ""),
+          };
+
+          // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
+          const currentStudent = await Student.findById(id);
+          if (!currentStudent) {
+            const error = new HttpError(
+              "Không tìm thấy sinh viên cần cập nhật!",
+              404
+            );
+            return next(error);
+          }
+
+          const student = await updateStudentFields(
+            id,
+            updatedAvatar,
+            currentStudent,
+            true
+          );
+        } else {
+          const newDirPath = path.join(targetPath, id);
+          if (!fs.existsSync(newDirPath)) {
+            await fs.promises.mkdir(newDirPath);
+          }
+
+          const newFilePath = path.join(newDirPath, file);
+          await fs.promises.rename(filePath, newFilePath);
         }
-
-        const newFilePath = path.join(newDirPath, file);
-        await fs.promises.rename(filePath, newFilePath);
       }
     }
   } catch (err) {
     console.error("Error while organizing files: ", err);
+    throw new HttpError("Xảy ra lỗi trong lúc phân loại ảnh!");
   }
 };
 
@@ -181,14 +218,25 @@ const getStudentsPaginated = async (req, res, next) => {
     const searchQuery = req.query.search || null;
 
     if (page < 1 || limit < 1) {
-      const error = new HttpError("Invalid page or limit value!", 400);
+      const error = new HttpError(
+        "Số trang hoặc số dòng mỗi trang yêu cầu không hơp lệ!",
+        400
+      );
       return next(error);
     }
 
     let query = {};
 
     if (searchQuery) {
-      query = { first_name: { $regex: searchQuery, $options: "i" } };
+      const searchRegex = new RegExp(searchQuery, "i");
+      query = {
+        $or: [
+          { student_id: searchRegex },
+          { first_name: searchRegex },
+          { middle_name: searchRegex },
+          { last_name: searchRegex },
+        ],
+      };
     }
 
     const skip = (page - 1) * limit;
@@ -198,7 +246,7 @@ const getStudentsPaginated = async (req, res, next) => {
         $match: query,
       },
       {
-        $sort: { student_id: 1, first_name: 1 },
+        $sort: { student_id: -1, first_name: 1 },
       },
       {
         $skip: skip,
@@ -219,7 +267,7 @@ const getStudentsPaginated = async (req, res, next) => {
   } catch (err) {
     console.error("get students----------- ", err);
     const error = new HttpError(
-      "An error occured, please try again later!",
+      "Có lỗi xảy ra khi lấy dữ liệu sinh viên, vui lòng thử lại sau!",
       500
     );
     return next(error);
@@ -277,29 +325,74 @@ const createStudent = async (req, res, next) => {
     res.status(201).json({ student: newStudent });
   } catch (err) {
     console.log("Lỗi tạo mới sinh viên: ", err);
-    const error = new HttpError("Error occured!", 500);
+    const error = new HttpError(
+      "Có lỗi xảy ra khi tạo mới sinh viên, vui lòng thử lại sau!",
+      500
+    );
     return next(error);
   }
 };
 
-const updateStudentFields = async (id, updateFields) => {
+const updateStudentFields = async (
+  id,
+  updateFields,
+  currentStudent,
+  findByStudentId = false
+) => {
   try {
     // Sử dụng findOneAndUpdate để cập nhật nhiều trường
-    const student = await Student.findOneAndUpdate(
-      { _id: id },
-      { $set: updateFields },
-      { new: true }
-    );
+    let student;
+    if (findByStudentId) {
+      student = await Student.findOneAndUpdate(
+        { student_id: id },
+        { $set: updateFields },
+        { new: true }
+      );
+    } else {
+      student = await Student.findOneAndUpdate(
+        { _id: id },
+        { $set: updateFields },
+        { new: true }
+      );
+    }
 
     if (!student) {
-      throw new HttpError("Cannot find student to update!", 404);
+      throw new HttpError("Không tìm thấy sinh viên cần cập nhật!", 404);
+    }
+
+    // Xóa file ảnh cũ nếu có và cập nhật thành công
+    if (
+      currentStudent &&
+      currentStudent.portrait_img &&
+      updateFields.portrait_img
+    ) {
+      const oldImagePath = path.join(
+        __dirname,
+        "public",
+        "uploads",
+        currentStudent.portrait_img
+      );
+
+      fs.access(oldImagePath, fs.constants.F_OK, (err) => {
+        if (!err) {
+          fs.unlink(oldImagePath, (err) => {
+            if (err) {
+              console.error("Không thể xóa ảnh cũ:", err);
+            } else {
+              console.log("Đã xóa ảnh cũ:", oldImagePath);
+            }
+          });
+        } else {
+          console.log("File ảnh cũ không tồn tại:", oldImagePath);
+        }
+      });
     }
 
     return student;
   } catch (err) {
-    console.error("Lỗi khi cập nhật thông tin người dùng: ", err);
+    console.error("Lỗi khi cập nhật thông tin sinh viên: ", err);
     throw new HttpError(
-      "Có lỗi khi cập nhật thông tin người dùng, vui lòng thử lại!",
+      "Có lỗi khi cập nhật thông tin sinh viên, vui lòng thử lại!",
       500
     );
   }
@@ -345,6 +438,22 @@ const updateStudent = async (req, res, next) => {
   if (image)
     fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
 
+  // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
+  let currentStudent;
+  try {
+    currentStudent = await Student.findById(id);
+    if (!currentStudent) {
+      const error = new HttpError(
+        "Không tìm thấy sinh viên cần cập nhật!",
+        404
+      );
+      return next(error);
+    }
+  } catch (err) {
+    const error = new HttpError("Lỗi khi tìm sinh viên!", 500);
+    return next(error);
+  }
+
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
   //   "first_name",
@@ -362,17 +471,21 @@ const updateStudent = async (req, res, next) => {
   const validUpdateFields = getValidFields(fieldsToUpdate, []);
 
   if (Object.keys(validUpdateFields).length === 0) {
-    const error = new HttpError("Invalid input!", 422);
+    const error = new HttpError("Không có trường cần cập nhật!", 422);
     return next(error);
   }
   const transformedFields = transformObjectFields(validUpdateFields);
 
   try {
-    const student = await updateStudentFields(id, transformedFields);
+    const student = await updateStudentFields(
+      id,
+      transformedFields,
+      currentStudent
+    );
     res.json({ student: student });
   } catch (err) {
     console.log("update student: ", err);
-    const error = new HttpError("Error occured!", 500);
+    const error = new HttpError(err.message, 500);
     return next(error);
   }
 };
