@@ -139,7 +139,7 @@ const organizeFilesById = async (targetPath) => {
           };
 
           // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
-          const currentStudent = await Student.findById(id);
+          const currentStudent = await Student.findOne({ student_id: id });
           if (!currentStudent) {
             const error = new HttpError(
               "Không tìm thấy sinh viên cần cập nhật!",
@@ -149,10 +149,8 @@ const organizeFilesById = async (targetPath) => {
           }
 
           const student = await updateStudentFields(
-            id,
-            updatedAvatar,
             currentStudent,
-            true
+            updatedAvatar
           );
         } else {
           const newDirPath = path.join(targetPath, id);
@@ -333,28 +331,13 @@ const createStudent = async (req, res, next) => {
   }
 };
 
-const updateStudentFields = async (
-  id,
-  updateFields,
-  currentStudent,
-  findByStudentId = false
-) => {
+const updateStudentFields = async (currentStudent, updateFields) => {
   try {
-    // Sử dụng findOneAndUpdate để cập nhật nhiều trường
-    let student;
-    if (findByStudentId) {
-      student = await Student.findOneAndUpdate(
-        { student_id: id },
-        { $set: updateFields },
-        { new: true }
-      );
-    } else {
-      student = await Student.findOneAndUpdate(
-        { _id: id },
-        { $set: updateFields },
-        { new: true }
-      );
-    }
+    const student = await Student.findOneAndUpdate(
+      { _id: currentStudent._id },
+      { $set: updateFields },
+      { new: true }
+    );
 
     if (!student) {
       throw new HttpError("Không tìm thấy sinh viên cần cập nhật!", 404);
@@ -478,9 +461,8 @@ const updateStudent = async (req, res, next) => {
 
   try {
     const student = await updateStudentFields(
-      id,
-      transformedFields,
-      currentStudent
+      currentStudent,
+      transformedFields
     );
     res.json({ student: student });
   } catch (err) {
