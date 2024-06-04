@@ -206,6 +206,16 @@ const getSuspiciousStudents = async (req, res, next) => {
       // console.log(student);
       const examStudent = await Student.findOne({ _id: student });
       // console.log("examStudent", examStudent);
+      examSchedules.forEach(async (exam) => {
+        // Duyệt qua từng sinh viên trong lịch thi
+        let schedules = [];
+        const isStudentPresent = exam.students.some((s) => s.student === student);
+        const examRoom = await Room.findOne({ _id: exam.room });
+        if (isStudentPresent) {
+          schedules.push({room: examRoom.room_name, time: exam.start_time})
+        }
+      });
+      examStudent.schedules = schedules
       examStudents.push(examStudent);
     }
     res.json(examStudents);
