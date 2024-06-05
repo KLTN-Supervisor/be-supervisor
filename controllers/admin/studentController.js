@@ -8,6 +8,7 @@ const StreamZip = require("node-stream-zip");
 const unrar = require("node-unrar-js");
 const { getValidFields } = require("../../utils/validators");
 const { transformObjectFields } = require("../../utils/objectFunctions");
+const removeVietnameseTones = require("../../utils/removeVietnameseTones");
 
 const importStudents = async (req, res, next) => {
   try {
@@ -233,6 +234,7 @@ const getStudentsPaginated = async (req, res, next) => {
           { first_name: searchRegex },
           { middle_name: searchRegex },
           { last_name: searchRegex },
+          { search_keywords: searchRegex },
         ],
       };
     }
@@ -386,6 +388,11 @@ const updateStudent = async (req, res, next) => {
   const updateFields = req.body; // Chứa các trường cần cập nhật
   const image = req.file;
 
+  // Combine first_name, middle_name, last_name into full_name
+  const fullName = `${updateFields.last_name} ${updateFields.middle_name} ${updateFields.first_name}`;
+
+  const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
+
   // Gộp các trường thành permanent_address
   const permanent_address = {
     city_or_province: updateFields.city_or_province,
@@ -416,6 +423,7 @@ const updateStudent = async (req, res, next) => {
     ...updateFields,
     permanent_address,
     school_year,
+    search_keywords: searchKeywords,
   };
 
   if (image)

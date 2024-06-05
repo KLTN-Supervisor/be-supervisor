@@ -25,6 +25,7 @@ const inspectorSchema = new Schema(
     first_name: { type: String, required: true, minLength: 1, maxLength: 8 },
     middle_name: { type: String, required: true, minLength: 2 },
     last_name: { type: String, required: true, minLength: 3, maxLength: 12 },
+    search_keywords: { type: String, required: true },
     date_of_birth: { type: Date, required: true },
     place_of_birth: { type: String, required: true },
     gender: { type: Boolean },

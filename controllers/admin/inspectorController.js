@@ -162,7 +162,15 @@ const getInspectorsPaginated = async (req, res, next) => {
     let query = {};
 
     if (searchQuery) {
-      query = { first_name: { $regex: searchQuery, $options: "i" } };
+      const searchRegex = new RegExp(searchQuery, "i");
+      query = {
+        $or: [
+          { inspector_id: searchRegex },
+          { first_name: searchRegex },
+          { middle_name: searchRegex },
+          { last_name: searchRegex },
+        ],
+      };
     }
 
     const skip = (page - 1) * limit;

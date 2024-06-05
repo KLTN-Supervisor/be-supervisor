@@ -167,15 +167,45 @@ const importExamSchedulesFromExcel = async (req, res, next) => {
 
   try {
     const files = await UploadFile.find({ _id: { $in: fileIds } });
+    let allExams = [];
 
     for (const file of files) {
       const result = await readFileDataFromExcel(file.file_path);
-      await ExamSchedule.insertMany(result);
+      allExams = allExams.concat(result);
       file.has_used = true;
       await file.save();
     }
-    console.log("import success: ", files);
-    res.json({ message: "Import success" });
+
+    // Get potential duplicates in one query
+    const duplicateChecks = allExams.map((exam) => ({
+      room: exam.room,
+      term: exam.term,
+      start_time: exam.start_time,
+    }));
+
+    const existingExams = await ExamSchedule.find({
+      $or: duplicateChecks,
+    }).populate({ path: "room", select: "room_name" });
+
+    const existingExamSet = new Set(
+      existingExams.map(
+        (exam) => `${exam.room._id.toString()}-${exam.term}-${exam.start_time}`
+      )
+    );
+
+    const filteredExams = allExams.filter(
+      (exam) =>
+        !existingExamSet.has(
+          `${exam.room.toString()}-${Number(exam.term)}-${exam.start_time}`
+        )
+    );
+
+    // Insert non-duplicate exams
+    if (filteredExams.length > 0) {
+      await ExamSchedule.insertMany(filteredExams);
+    }
+
+    res.json({ duplicates: existingExams, new_records: filteredExams.length });
   } catch (err) {
     console.error("admin import exam schedules----------- ", err);
     const error = new HttpError(err.message, 500);
