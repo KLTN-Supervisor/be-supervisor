@@ -206,7 +206,21 @@ const getSuspiciousStudents = async (req, res, next) => {
       // console.log(student);
       const examStudent = await Student.findOne({ _id: student });
       // console.log("examStudent", examStudent);
-      examStudents.push(examStudent);
+      const schedules = [];
+      for (const exam of examSchedules) {
+        const isStudentPresent = exam.students.some((s) => s.student.toString() === student);  
+        if (isStudentPresent) {
+          const examRoom = await Room.findOne({ _id: exam.room });
+          if (examRoom) {
+            schedules.push({ room: examRoom.room_name, time: exam.start_time });
+          }
+        }
+      }
+      const studentWithSchedules = examStudent.toJSON();
+      studentWithSchedules.schedules = schedules; 
+      examStudents.push(studentWithSchedules);
+      console.log(examStudents);
+      
     }
     res.json(examStudents);
   } catch (err) {
