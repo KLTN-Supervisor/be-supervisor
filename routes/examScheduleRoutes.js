@@ -17,6 +17,7 @@ router.get("/getBuilding", ExamScheduleController.getBuildingByDate);
 router.get("/getTime", ExamScheduleController.getExamTimeByBuilding);
 router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
+router.get("/getInfo", ExamScheduleController.getRoomInfo);
 router.get("/getSuspicious", ExamScheduleController.getSuspiciousStudents);
 router.put("/attendance", ExamScheduleController.attendanceStudent);
 router.put("/deleteReport", ExamScheduleController.deleteExamScheduleReport);
