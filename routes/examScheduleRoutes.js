@@ -8,7 +8,7 @@ const path = require("path");
 const router = express.Router();
 
 // routes need access token
-// router.use(tokenHandler.verifyAccessToken);
+router.use(tokenHandler.verifyAccessToken);
 
 router.get("/getYear", ExamScheduleController.getExamYears);
 router.get("/getTerm", ExamScheduleController.getTermsOfYear);

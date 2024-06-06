@@ -126,44 +126,36 @@ const login = async (req, res, next) => {
     }).select("+password");
 
     if (!existingUser) {
-      const error = new HttpError("Username or password is incorrect!", 401);
+      const error = new HttpError(
+        "Tên tài khoản hoặc mật khẩu không đúng!",
+        401
+      );
       return next(error);
     }
 
     if (existingUser.banned) {
-      const error = new HttpError(
-        "Account has been banned, please contact admin!",
-        403
-      );
+      const error = new HttpError("Tài khoản bị khóa, hãy liên hệ admin!", 403);
       return next(error);
     }
 
     const isValidPassword = await existingUser.comparePassword(password);
 
     if (!isValidPassword) {
-      const error = new HttpError("Username or password is incorrect!", 401);
+      const error = new HttpError(
+        "Tên tài khoản hoặc mật khẩu không đúng!",
+        401
+      );
       return next(error);
     }
 
     const accessToken = tokenHandler.generateToken(
       existingUser,
       "access",
-      "7h"
+      "8h"
     );
-    const refreshToken = tokenHandler.generateToken(
-      existingUser,
-      "refresh",
-      "7d"
-    );
+    req.session.access_token = accessToken;
 
-    res.cookie("jwt", refreshToken, {
-      httpOnly: true, // access only by webserver
-      secure: true, // https
-      sameSite: "None", // cross-site cookie
-      maxAge: 1000 * 60 * 60 * 24 * 7, // cookie expiry: set to match rT
-    });
-
-    res.json({ access_token: accessToken, role: existingUser.role });
+    res.json({ message: "Đăng nhập thành công!" });
   } catch (err) {
     const error = new HttpError(
       "Có lỗi trong quá trình đăng nhập, vui lòng thử lại sau!",
@@ -216,10 +208,17 @@ const refresh = async (req, res, next) => {
 };
 
 const logout = (req, res) => {
-  const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204);
-  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
-  res.json({ message: "Đã xóa cookie!" });
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    res.clearCookie("connect.sid", {
+      httpOnly: true,
+      sameSite: "None",
+      secure: true,
+    });
+    res.sendStatus(204);
+  });
 };
 
 const sendResetVerification = async (req, res, next) => {
@@ -365,14 +364,17 @@ const getLoginAccountInformation = async (req, res, next) => {
     );
 
     if (!user) {
-      const error = new HttpError("Account doesn't exists!", 404);
+      const error = new HttpError("Tài khoản không tồn tại!", 404);
       return next(error);
     }
 
     res.json({ user: user });
   } catch (err) {
     console.log(err);
-    const error = new HttpError("Error occured, please try again!", 500);
+    const error = new HttpError(
+      "Có lỗi xảy ra khi lấy thông tin tài khoản!",
+      500
+    );
     return next(error);
   }
 };

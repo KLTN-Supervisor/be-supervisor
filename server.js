@@ -62,6 +62,20 @@ app.use(express.json());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.resolve(__dirname, "public", "uploads")));
+//session
+app.use(
+  session({
+    secret: process.env.SESSION_KEY,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
+      maxAge: 1000 * 60 * 60 * 8, // 8 hours
+    },
+  })
+);
 
 app.use("/api", route);
 

@@ -50,43 +50,38 @@ const verifyResetToken = (token) => {
 };
 
 const verifyAccessToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || authHeader.split(" ")[0] !== "Bearer") {
-    const error = new HttpError("Unauthorized!", 403);
+  if (!req.session.access_token) {
+    const error = new HttpError("Chưa xác thực!", 403);
     return next(error);
   }
+
   try {
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      const error = new HttpError("Unauthorized!", 403);
-      return next(error);
-    }
+    const token = req.session.access_token;
 
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
     const user = await Account.findById(decodedToken.id).select("+password");
 
     const isValidPassword = decodedToken.pw.trim() === user.password.trim();
 
     if (!isValidPassword || user.banned) {
-      const cookies = req.cookies;
-      if (cookies?.jwt) {
-        req.cookies = null;
-        res.clearCookie("jwt", {
+      req.session.destroy((err) => {
+        if (err) {
+          return next(new HttpError("Có lỗi xảy ra khi xác thực!", 500));
+        }
+        res.clearCookie("connect.sid", {
           httpOnly: true,
           sameSite: "None",
           secure: true,
         });
-      }
-      const error = new HttpError("Your session has expired!", 401);
-      return next(error);
+        return next(new HttpError("Phiên hoạt động của bạn đã hết hạn!", 401));
+      });
     } else {
       req.userData = decodedToken;
       next();
     }
   } catch (err) {
     console.log("1---access---------------------: ", err);
-    const error = new HttpError("An error occured!", 500);
+    const error = new HttpError("An error occurred!", 500);
     return next(error);
   }
 };
