@@ -4,6 +4,7 @@ const Room = require("../models/schemas/room");
 const Building = require("../models/schemas/building");
 const Student = require("../models/schemas/student");
 const Report = require("../models/schemas/report");
+const Subject = require("../models/schemas/subject");
 
 const { validationResult } = require("express-validator");
 
@@ -169,6 +170,23 @@ const getStudentByRoom = async (req, res, next) => {
   }
 };
 
+const getRoomInfo = async (req, res, next) => {
+  try {
+    const date = req.query.date || "00/00/0000";
+    const room = req.query.room;
+    const examSchedule = await ExamSchedule.findOne({
+      start_time: date,
+      room: room,
+    });
+    const examRoom = await Room.findOne({ _id: examSchedule.room });
+    const examSubject = await Subject.findOne({ _id: examSchedule.subject });
+
+    res.json({room_name: examRoom.room_name, start_time: date, year: examSchedule.year, term: examSchedule.term, subject_name: examSubject.subject_name, quantity: examSchedule.students.length});
+  } catch (error) {
+    return next(error);
+  }
+};
+
 const getSuspiciousStudents = async (req, res, next) => {
   try {
     const date = req.query.date || "00/00/0000";
@@ -329,3 +347,4 @@ exports.attendanceStudent = attendanceStudent;
 exports.noteReport = noteReport;
 exports.getExamScheduleReport = getExamScheduleReport;
 exports.deleteExamScheduleReport = deleteExamScheduleReport;
+exports.getRoomInfo = getRoomInfo;
