@@ -29,6 +29,11 @@ const importStudents = async (req, res, next) => {
     if (csvdata.length > 0) {
       // Tạo một danh sách các student_id từ dữ liệu CSV
       const studentIds = csvdata.map((student) => student.student_id);
+      // Combine first_name, middle_name, last_name into full_name
+      const fullName = `${csvdata.last_name} ${csvdata.middle_name} ${csvdata.first_name}`;
+      const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
+
+      csvdata.search_keywords = searchKeywords;
 
       // Tìm các student_id trùng lặp
       const duplicateStudentIds = await Student.find({
@@ -279,6 +284,11 @@ const createStudent = async (req, res, next) => {
     const formData = req.body;
     const image = req.file;
 
+    // Combine first_name, middle_name, last_name into full_name
+    const fullName = `${formData.last_name} ${formData.middle_name} ${formData.first_name}`;
+
+    const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
+
     // Tạo địa chỉ thường trú từ các trường city_or_province, district và address
     const permanent_address = {
       city_or_province: formData.city_or_province,
@@ -308,6 +318,7 @@ const createStudent = async (req, res, next) => {
       first_name: formData.first_name,
       middle_name: formData.middle_name,
       last_name: formData.last_name,
+      search_keywords: searchKeywords,
       date_of_birth: new Date(formData.date_of_birth),
       place_of_birth: formData.place_of_birth,
       gender: formData.gender,

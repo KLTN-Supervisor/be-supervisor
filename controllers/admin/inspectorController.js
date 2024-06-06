@@ -1,5 +1,4 @@
 const HttpError = require("../../models/application/httpError");
-const Student = require("../../models/schemas/student");
 const Inspector = require("../../models/schemas/inspector");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
@@ -9,6 +8,7 @@ const StreamZip = require("node-stream-zip");
 const unrar = require("node-unrar-js");
 const { transformObjectFields } = require("../../utils/objectFunctions");
 const { getValidFields } = require("../../utils/validators");
+const removeVietnameseTones = require("../../utils/removeVietnameseTones");
 
 const importInpectors = async (req, res, next) => {
   try {
@@ -29,6 +29,12 @@ const importInpectors = async (req, res, next) => {
     if (csvdata.length > 0) {
       // Tạo một danh sách các student_id từ dữ liệu CSV
       const inspectorIds = csvdata.map((inspector) => inspector.inspector_id);
+
+      // Combine first_name, middle_name, last_name into full_name
+      const fullName = `${csvdata.last_name} ${csvdata.middle_name} ${csvdata.first_name}`;
+      const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
+
+      csvdata.search_keywords = searchKeywords;
 
       // Tìm các student_id trùng lặp
       const duplicateInspectorIds = await Inspector.find({
@@ -155,7 +161,10 @@ const getInspectorsPaginated = async (req, res, next) => {
     const searchQuery = req.query.search || null;
 
     if (page < 1 || limit < 1) {
-      const error = new HttpError("Invalid page or limit value!", 400);
+      const error = new HttpError(
+        "Số trang hoặc số dòng mỗi trang yêu cầu không hơp lệ!",
+        400
+      );
       return next(error);
     }
 
@@ -169,6 +178,7 @@ const getInspectorsPaginated = async (req, res, next) => {
           { first_name: searchRegex },
           { middle_name: searchRegex },
           { last_name: searchRegex },
+          { search_keywords: searchRegex },
         ],
       };
     }
@@ -199,33 +209,61 @@ const getInspectorsPaginated = async (req, res, next) => {
       total_inspectors: totalInspectors,
     });
   } catch (err) {
-    console.error("get students----------- ", err);
+    console.error("get inspectors----------- ", err);
     const error = new HttpError(
-      "An error occured, please try again later!",
+      "Có lỗi khi lấy thông tin thanh tra, vui lòng thử lại!",
       500
     );
     return next(error);
   }
 };
 
-const updateInspectorFields = async (id, updateFields) => {
+const updateInspectorFields = async (currentInspector, updateFields) => {
   try {
     // Sử dụng findOneAndUpdate để cập nhật nhiều trường
     const inspector = await Inspector.findOneAndUpdate(
-      { _id: id },
+      { _id: currentInspector._id },
       { $set: updateFields },
       { new: true }
     );
 
     if (!inspector) {
-      throw new HttpError("Cannot find student to update!", 404);
+      throw new HttpError("Không tìm thấy thanh tra cần cập nhật!", 404);
+    }
+
+    // Xóa file ảnh cũ nếu có và cập nhật thành công
+    if (
+      currentInspector &&
+      currentInspector.portrait_img &&
+      currentInspector.portrait_img
+    ) {
+      const oldImagePath = path.join(
+        __dirname,
+        "public",
+        "uploads",
+        currentInspector.portrait_img
+      );
+
+      fs.access(oldImagePath, fs.constants.F_OK, (err) => {
+        if (!err) {
+          fs.unlink(oldImagePath, (err) => {
+            if (err) {
+              console.error("Không thể xóa ảnh cũ:", err);
+            } else {
+              console.log("Đã xóa ảnh cũ:", oldImagePath);
+            }
+          });
+        } else {
+          console.log("File ảnh cũ không tồn tại:", oldImagePath);
+        }
+      });
     }
 
     return inspector;
   } catch (err) {
-    console.error("Lỗi khi cập nhật thông tin người dùng: ", err);
+    console.error("Lỗi khi cập nhật thông tin thanh tra: ", err);
     throw new HttpError(
-      "Có lỗi khi cập nhật thông tin người dùng, vui lòng thử lại!",
+      "Có lỗi khi cập nhật thông tin thanh tra, vui lòng thử lại!",
       500
     );
   }
@@ -235,6 +273,11 @@ const createInspector = async (req, res, next) => {
   try {
     const formData = req.body;
     const image = req.file;
+
+    // Combine first_name, middle_name, last_name into full_name
+    const fullName = `${formData.last_name} ${formData.middle_name} ${formData.first_name}`;
+
+    const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
 
     // Tạo địa chỉ thường trú từ các trường city_or_province, district và address
     const permanent_address = {
@@ -251,6 +294,7 @@ const createInspector = async (req, res, next) => {
       first_name: formData.first_name,
       middle_name: formData.middle_name,
       last_name: formData.last_name,
+      search_keywords: searchKeywords,
       date_of_birth: new Date(formData.date_of_birth),
       place_of_birth: formData.place_of_birth,
       gender: formData.gender,
@@ -265,7 +309,10 @@ const createInspector = async (req, res, next) => {
     res.status(201).json({ inspector: newInspector });
   } catch (err) {
     console.log("Lỗi tạo mới thanh tra: ", err);
-    const error = new HttpError("Error occured!", 500);
+    const error = new HttpError(
+      "Có lỗi xảy ra khi tạo mới, vui lòng thử lại sau!",
+      500
+    );
     return next(error);
   }
 };
@@ -274,6 +321,11 @@ const updateInspector = async (req, res, next) => {
   const id = req.params.id;
   const updateFields = req.body; // Chứa các trường cần cập nhật
   const image = req.file;
+
+  // Combine first_name, middle_name, last_name into full_name
+  const fullName = `${updateFields.last_name} ${updateFields.middle_name} ${updateFields.first_name}`;
+
+  const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
 
   // Gộp các trường thành permanent_address
   const permanent_address = {
@@ -290,10 +342,27 @@ const updateInspector = async (req, res, next) => {
   const fieldsToUpdate = {
     ...updateFields,
     permanent_address,
+    search_keywords: searchKeywords,
   };
 
   if (image)
     fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
+
+  // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
+  let currentInspector;
+  try {
+    currentInspector = await Inspector.findById(id);
+    if (!currentInspector) {
+      const error = new HttpError(
+        "Không tìm thấy thanh tra cần cập nhật!",
+        404
+      );
+      return next(error);
+    }
+  } catch (err) {
+    const error = new HttpError("Lỗi khi tìm thanh tra!", 500);
+    return next(error);
+  }
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -309,7 +378,7 @@ const updateInspector = async (req, res, next) => {
   //   "search_keyword",
   // ];
   // Lọc và chỉ giữ lại các trường hợp lệ
-  const validUpdateFields = getValidFields(updateFields, []);
+  const validUpdateFields = getValidFields(fieldsToUpdate, []);
 
   if (Object.keys(validUpdateFields).length === 0) {
     const error = new HttpError("Invalid input!", 422);
@@ -318,11 +387,14 @@ const updateInspector = async (req, res, next) => {
   const transformedFields = transformObjectFields(validUpdateFields);
 
   try {
-    const inspector = await updateInspectorFields(id, transformedFields);
+    const inspector = await updateInspectorFields(
+      currentInspector,
+      transformedFields
+    );
     res.json({ inspector: inspector });
   } catch (err) {
     console.log("update inspector: ", err);
-    const error = new HttpError("Error occured!", 500);
+    const error = new HttpError("Có lỗi xảy ra khi cập nhật!", 500);
     return next(error);
   }
 };

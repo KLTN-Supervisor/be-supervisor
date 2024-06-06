@@ -37,5 +37,7 @@ router.put(
   ],
   AccountController.updateAccount
 );
+router.put("/ban/:id", AccountController.banAccount);
+router.put("/unban/:id", AccountController.unbanAccount);
 
 module.exports = router;

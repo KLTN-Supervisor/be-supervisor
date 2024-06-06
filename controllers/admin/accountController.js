@@ -9,19 +9,18 @@ const { transformObjectFields } = require("../../utils/objectFunctions");
 const createAccount = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log(errors.array());
-    return next(new HttpError("Invalid input!", 422));
+    return next(new HttpError("Dữ liệu nhập không hợp lệ!", 422));
   }
-  const { fullname, username, password, role } = req.body;
+  const { fullname, username, password, email, role } = req.body;
   const image = req.file;
 
   try {
     const existingUser = await Account.findOne({
-      username: username,
+      $or: [{ username: username }, { email: email }],
     });
 
     if (existingUser) {
-      const error = new HttpError("Username exists!", 422);
+      const error = new HttpError("Tên đăng nhập hoặc email đã tồn tại!", 422);
       return next(error);
     }
 
@@ -29,16 +28,18 @@ const createAccount = async (req, res, next) => {
       username: username,
       password: password,
       full_name: fullname,
+      email: email,
       avatar: image ? image.path.replace("public\\uploads\\", "") : "",
-      search_keyword: `${removeVietnameseTones(fullname)}`,
+      search_keywords: `${removeVietnameseTones(fullname)}`,
       role: role,
     });
 
     await newAccount.save();
     res.status(201).json({ account: newAccount });
   } catch (err) {
+    console.log(err);
     const error = new HttpError(
-      "Có lỗi trong quá trình đăng ký, vui lòng thử lại sau!",
+      "Có lỗi trong quá trình tạo tài khoản, vui lòng thử lại sau!",
       500
     );
     return next(error);
@@ -55,7 +56,7 @@ const updateStudentFields = async (id, updateFields) => {
     );
 
     if (!student) {
-      throw new HttpError("Cannot find student to update!", 404);
+      throw new HttpError("Không tìm thấy user cần cập nhật!", 404);
     }
 
     return student;
@@ -92,7 +93,7 @@ const updateAccount = async (req, res, next) => {
   const validUpdateFields = getValidFields(updateFields, []);
 
   if (Object.keys(validUpdateFields).length === 0) {
-    const error = new HttpError("Invalid input!", 422);
+    const error = new HttpError("Dữ liệu nhập không hợp lệ!", 422);
     return next(error);
   }
   const transformedFields = transformObjectFields(validUpdateFields);
@@ -102,7 +103,7 @@ const updateAccount = async (req, res, next) => {
     res.json({ account: student });
   } catch (err) {
     console.log("update student: ", err);
-    const error = new HttpError("Error occured!", 500);
+    const error = new HttpError("Có lỗi xảy ra khi cập nhật!", 500);
     return next(error);
   }
 };
@@ -114,17 +115,24 @@ const getAccountsPaginated = async (req, res, next) => {
     const searchQuery = req.query.search || null;
 
     if (page < 1 || limit < 1) {
-      const error = new HttpError("Invalid page or limit value!", 400);
+      const error = new HttpError(
+        "Số trang hoặc số dòng mỗi trang yêu cầu không hơp lệ!",
+        400
+      );
       return next(error);
     }
 
     let query = {};
 
     if (searchQuery) {
+      const searchRegex = new RegExp(searchQuery, "i");
       query = {
-        username: { $regex: searchQuery, $options: "i" },
-        search_keyword: { $regex: searchQuery, $options: "i" },
-        full_name: { $regex: searchQuery, $options: "i" },
+        $or: [
+          { username: searchRegex },
+          { email: searchRegex },
+          { search_keywords: searchRegex },
+          { full_name: searchRegex },
+        ],
       };
     }
 
@@ -156,11 +164,71 @@ const getAccountsPaginated = async (req, res, next) => {
   } catch (err) {
     console.error("get accounts----------- ", err);
     const error = new HttpError(
-      "An error occured, please try again later!",
+      "Có lỗi xảy ra khi lấy dữ liệu tài khoản, vui lòng thử lại sau!",
       500
     );
     return next(error);
   }
 };
 
-module.exports = { getAccountsPaginated, createAccount, updateAccount };
+const banAccount = async (req, res) => {
+  const userIdToBan = req.params.id;
+
+  try {
+    // Tìm người dùng cần cấm
+    const userToBan = await Account.findById(userIdToBan);
+
+    if (!userToBan) {
+      const error = new HttpError("Không tìm thấy người dùng để cấm!", 404);
+      return next(error);
+    }
+
+    // Cập nhật trạng thái cấm và lưu lại
+    userToBan.banned = true;
+    await userToBan.save();
+
+    res.json({ message: "Người dùng đã được cấm thành công." });
+  } catch (err) {
+    console.error("Lỗi khi cấm người dùng:", error);
+    const error = new HttpError(
+      "Đã xảy ra lỗi trong quá trình cấm tài khoản!",
+      500
+    );
+    return next(error);
+  }
+};
+
+const unbanAccount = async (req, res) => {
+  const userIdToUnban = req.params.id;
+
+  try {
+    // Tìm người dùng cần bỏ cấm
+    const userToUnban = await Account.findById(userIdToUnban);
+
+    if (!userToUnban) {
+      const error = new HttpError("Không tìm thấy người dùng để bỏ cấm!", 404);
+      return next(error);
+    }
+
+    // Cập nhật trạng thái cấm và lưu lại
+    userToUnban.banned = false;
+    await userToUnban.save();
+
+    res.json({ message: "Người dùng đã được bỏ cấm thành công." });
+  } catch (err) {
+    console.error("Lỗi khi bỏ cấm người dùng:", error);
+    const error = new HttpError(
+      "Đã xảy ra lỗi trong quá trình bỏ cấm tài khoản!",
+      500
+    );
+    return next(error);
+  }
+};
+
+module.exports = {
+  getAccountsPaginated,
+  createAccount,
+  updateAccount,
+  banAccount,
+  unbanAccount,
+};
