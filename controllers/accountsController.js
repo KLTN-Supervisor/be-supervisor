@@ -156,8 +156,12 @@ const login = async (req, res, next) => {
 
     req.session.access_token = accessToken;
 
-    res.json({ message: "Đăng nhập thành công!" });
+    req.session.save(function (err) {
+      if (err) next(err);
+      res.json({ message: "Đăng nhập thành công!" });
+    });
   } catch (err) {
+    console.log(err);
     const error = new HttpError(
       "Có lỗi trong quá trình đăng nhập, vui lòng thử lại sau!",
       500
@@ -209,17 +213,21 @@ const refresh = async (req, res, next) => {
 };
 
 const logout = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: "Logout failed" });
-    }
-    res.clearCookie("connect.sid", {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "Lax" : "None",
-      secure: process.env.NODE_ENV === "production",
+  if (req?.session?.id)
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.clearCookie("connect.sid", {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "Lax" : "None",
+        secure: process.env.NODE_ENV === "production",
+      });
+      res.sendStatus(204);
     });
-    res.sendStatus(204);
-  });
+  else {
+    res.status(204).json({ message: "Không có phiên!" });
+  }
 };
 
 const sendResetVerification = async (req, res, next) => {

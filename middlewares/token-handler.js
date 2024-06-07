@@ -50,19 +50,9 @@ const verifyResetToken = (token) => {
 };
 
 const verifyAccessToken = async (req, res, next) => {
-  console.log("Session before check: ", req.session.id);
-  // Access the session store and retrieve the session data
-  // Access the session store and retrieve the session data
-  req.sessionStore.get(req.session.id, function (err, session) {
-    if (err) {
-      console.error("Error retrieving session from store:", err);
-      return next(new HttpError("Internal Server Error", 500));
-    }
+  //console.log("Session before check: ", req?.session?.id);
 
-    console.log("Session data from store:", session);
-  });
-
-  if (!req.session.access_token) {
+  if (!req.session?.access_token) {
     const error = new HttpError("Chưa xác thực!", 403);
     return next(error);
   }
