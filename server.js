@@ -1,7 +1,7 @@
 const express = require("express");
 const HttpError = require("./models/application/httpError");
 const allowedOrigins = require("./configs/allowedOrigin");
-
+const MongoStore = require("connect-mongo");
 const session = require("express-session");
 const helmet = require("helmet");
 const compress = require("compression");
@@ -10,11 +10,12 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const fs = require("fs");
+//ConnectDB
+const { DBconnect } = require("./configs/connectDB");
 
 const route = require("./routes/index");
 const app = express();
 
-app.use(express.json());
 // Use compress!
 app.use(compress());
 // Use Helmet!
@@ -28,28 +29,44 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("combined"));
 }
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS hihihihi!"));
-    }
-  },
-  credentials: true,
-};
-app.use(cors(corsOptions));
+//session
+app.use(
+  session({
+    secret: process.env.SESSION_KEY,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.DB_URI }),
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 1000 * 60 * 60 * 8, // 8 hours,
+    },
+  })
+);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS!"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use((req, res, next) => {
   // Add the Cross-Origin-Resource-Policy header
   res.setHeader("Cross-Origin-Resource-Policy", "same-site");
   next();
 });
 
-app.use(cookieParser());
+//app.use(cookieParser());
 app.set("view engine", "pug");
 
-//ConnectDB
-const { DBconnect } = require("./configs/connectDB");
 DBconnect(() => {
   const server = app.listen(process.env.PORT, () => {
     console.log(`app is running on port ${process.env.PORT}`);
@@ -57,25 +74,11 @@ DBconnect(() => {
 });
 
 app.use(express.json());
-
 // Sử dụng body-parser middleware
 app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: false }));
+
 app.use(express.static(path.resolve(__dirname, "public", "uploads")));
-//session
-app.use(
-  session({
-    secret: process.env.SESSION_KEY,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 1000 * 60 * 60 * 8, // 8 hours
-    },
-  })
-);
 
 app.use("/api", route);
 
@@ -93,7 +96,7 @@ app.use((error, req, res, next) => {
   if (res.headerSent) {
     return next(error);
   }
-  console.log("cuối: ", error);
+
   res.status(error.code || 500);
   res.json({ message: error.message || "Lỗi không xác định!" });
 });

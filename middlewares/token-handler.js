@@ -50,6 +50,18 @@ const verifyResetToken = (token) => {
 };
 
 const verifyAccessToken = async (req, res, next) => {
+  console.log("Session before check: ", req.session.id);
+  // Access the session store and retrieve the session data
+  // Access the session store and retrieve the session data
+  req.sessionStore.get(req.session.id, function (err, session) {
+    if (err) {
+      console.error("Error retrieving session from store:", err);
+      return next(new HttpError("Internal Server Error", 500));
+    }
+
+    console.log("Session data from store:", session);
+  });
+
   if (!req.session.access_token) {
     const error = new HttpError("Chưa xác thực!", 403);
     return next(error);
@@ -70,8 +82,8 @@ const verifyAccessToken = async (req, res, next) => {
         }
         res.clearCookie("connect.sid", {
           httpOnly: true,
-          sameSite: "None",
-          secure: true,
+          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+          secure: process.env.NODE_ENV === "production",
         });
         return next(new HttpError("Phiên hoạt động của bạn đã hết hạn!", 401));
       });

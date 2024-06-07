@@ -153,6 +153,7 @@ const login = async (req, res, next) => {
       "access",
       "8h"
     );
+
     req.session.access_token = accessToken;
 
     res.json({ message: "Đăng nhập thành công!" });
@@ -214,8 +215,8 @@ const logout = (req, res) => {
     }
     res.clearCookie("connect.sid", {
       httpOnly: true,
-      sameSite: "None",
-      secure: true,
+      sameSite: process.env.NODE_ENV === "production" ? "Lax" : "None",
+      secure: process.env.NODE_ENV === "production",
     });
     res.sendStatus(204);
   });
