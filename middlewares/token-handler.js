@@ -89,17 +89,13 @@ const verifyAccessToken = async (req, res, next) => {
 };
 
 const verifyAdminAccessToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || authHeader.split(" ")[0] !== "Bearer") {
-    const error = new HttpError("Unauthorized!", 403);
+  if (!req.session?.access_token) {
+    const error = new HttpError("Chưa xác thực!", 403);
     return next(error);
   }
+
   try {
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      const error = new HttpError("Unauthorized!", 403);
-      return next(error);
-    }
+    const token = req.session.access_token;
 
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
@@ -112,18 +108,18 @@ const verifyAdminAccessToken = async (req, res, next) => {
 
     const isValidPassword = decodedToken.pw.trim() === user.password.trim();
 
-    if (!isValidPassword) {
-      const cookies = req.cookies;
-      if (cookies?.jwt) {
-        req.cookies = null;
-        res.clearCookie("jwt", {
+    if (!isValidPassword || user.banned) {
+      req.session.destroy((err) => {
+        if (err) {
+          return next(new HttpError("Có lỗi xảy ra khi xác thực!", 500));
+        }
+        res.clearCookie("connect.sid", {
           httpOnly: true,
-          sameSite: "None",
-          secure: true,
+          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+          secure: process.env.NODE_ENV === "production",
         });
-      }
-      const error = new HttpError("Session expired!", 401);
-      return next(error);
+        return next(new HttpError("Phiên hoạt động của bạn đã hết hạn!", 401));
+      });
     } else {
       req.userData = decodedToken;
       next();

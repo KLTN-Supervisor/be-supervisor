@@ -40,7 +40,7 @@ app.use(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 1000 * 60 * 60 * 8, // 8 hours,
+      //maxAge: 1000 * 60 * 60 * 8, // 8 hours,
     },
   })
 );
