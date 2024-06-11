@@ -12,7 +12,7 @@ const sendMail = async (option) => {
   });
 
   var message = {
-    from: `'NESTME' <${process.env.EMAIL_USER}>`,
+    from: `'Hệ thống hỗ trợ thanh tra' <${process.env.EMAIL_USER}>`,
     to: option.mailto,
     subject: option.subject,
     text: option.emailMessage,

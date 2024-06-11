@@ -5,6 +5,7 @@ const csv = require("csvtojson");
 const removeVietnameseTones = require("../../utils/removeVietnameseTones");
 const { getValidFields } = require("../../utils/validators");
 const { transformObjectFields } = require("../../utils/objectFunctions");
+const sendMail = require("../../utils/email");
 
 const createAccount = async (req, res, next) => {
   const errors = validationResult(req);
@@ -103,6 +104,52 @@ const updateAccount = async (req, res, next) => {
     res.json({ account: student });
   } catch (err) {
     console.log("update student: ", err);
+    const error = new HttpError("Có lỗi xảy ra khi cập nhật!", 500);
+    return next(error);
+  }
+};
+
+const generateRandomPassword = (length = 8) => {
+  const chars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    password += chars[randomIndex];
+  }
+  return password;
+};
+
+const resetAccountPassword = async (req, res, next) => {
+  const id = req.params.id;
+
+  try {
+    // Tìm tài khoản theo ID
+    const account = await Account.findById(id).select("+password");
+    if (!account) {
+      const error = new HttpError("Không tìm thấy tài khoản!", 404);
+      return next(error);
+    }
+
+    const newPassword = generateRandomPassword(8);
+
+    account.password = newPassword;
+
+    // Lưu tài khoản với mật khẩu mới
+    await account.save();
+
+    // Gửi email thông báo mật khẩu mới
+    const email = account.email;
+
+    await sendMail({
+      mailto: email,
+      subject: "Cấp lại mật khẩu",
+      emailMessage: `Mật khẩu của bạn đã được đặt lại. Mật khẩu mới là: ${newPassword}`,
+    });
+
+    res.json({ message: "Đặt lại thành công!" });
+  } catch (err) {
+    console.log("reset pass: ", err);
     const error = new HttpError("Có lỗi xảy ra khi cập nhật!", 500);
     return next(error);
   }
@@ -231,4 +278,5 @@ module.exports = {
   updateAccount,
   banAccount,
   unbanAccount,
+  resetAccountPassword,
 };
