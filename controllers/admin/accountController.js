@@ -218,25 +218,25 @@ const getAccountsPaginated = async (req, res, next) => {
   }
 };
 
-const banAccount = async (req, res) => {
+const banAccount = async (req, res, next) => {
   const userIdToBan = req.params.id;
 
   try {
-    // Tìm người dùng cần cấm
-    const userToBan = await Account.findById(userIdToBan);
+    // Cập nhật trạng thái cấm và lưu lại
+    const userToBan = await Account.findByIdAndUpdate(
+      userIdToBan,
+      { banned: true },
+      { new: true }
+    );
 
     if (!userToBan) {
       const error = new HttpError("Không tìm thấy người dùng để cấm!", 404);
       return next(error);
     }
 
-    // Cập nhật trạng thái cấm và lưu lại
-    userToBan.banned = true;
-    await userToBan.save();
-
-    res.json({ message: "Người dùng đã được cấm thành công." });
+    res.json({ message: "Người dùng đã được cấm thành công!" });
   } catch (err) {
-    console.error("Lỗi khi cấm người dùng:", error);
+    console.error("Lỗi khi cấm người dùng:", err);
     const error = new HttpError(
       "Đã xảy ra lỗi trong quá trình cấm tài khoản!",
       500
@@ -245,25 +245,25 @@ const banAccount = async (req, res) => {
   }
 };
 
-const unbanAccount = async (req, res) => {
+const unbanAccount = async (req, res, next) => {
   const userIdToUnban = req.params.id;
 
   try {
-    // Tìm người dùng cần bỏ cấm
-    const userToUnban = await Account.findById(userIdToUnban);
+    // Cập nhật trạng thái cấm và lưu lại
+    const userToUnban = await Account.findByIdAndUpdate(
+      userIdToUnban,
+      { banned: false },
+      { new: true }
+    );
 
     if (!userToUnban) {
       const error = new HttpError("Không tìm thấy người dùng để bỏ cấm!", 404);
       return next(error);
     }
 
-    // Cập nhật trạng thái cấm và lưu lại
-    userToUnban.banned = false;
-    await userToUnban.save();
-
-    res.json({ message: "Người dùng đã được bỏ cấm thành công." });
+    res.json({ message: "Người dùng đã được bỏ cấm thành công!" });
   } catch (err) {
-    console.error("Lỗi khi bỏ cấm người dùng:", error);
+    console.error("Lỗi khi bỏ cấm người dùng:", err);
     const error = new HttpError(
       "Đã xảy ra lỗi trong quá trình bỏ cấm tài khoản!",
       500
