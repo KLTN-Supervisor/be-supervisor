@@ -132,45 +132,35 @@ const getStudentsPaginated = async (req, res) => {
 const searchStudents = async (req, res, next) => {
   const searchText = req.query.search;
   const skip = parseInt(req.query.skip) || 0;
-  const type = req.query.type;
-  console.log(searchText);
+  console.log("searchText", searchText," skip", skip);
   try {
-    const regex = new RegExp(searchText, "i");
+    const regex = new RegExp(removeAccents(searchText), "i");
     if (searchText) {
-      if (type === "name") {
-        console.log("Toi day ne");
-        const students = await Student.find({
-          $or: [
-            { first_name: regex },
-            { middle_name: regex },
-            { last_name: regex },
-          ],
-        })
-          .sort({ first_name: 1 })
-          .skip(skip)
-          .limit(16)
-          .exec();
-        //console.log(students)
-        res.json(students);
-      } else if (type === "id") {
-        console.log("Toi day ch");
-        const students = await Student.find({
-          student_id: regex,
-        })
-          .sort({ student_id: 1 })
-          .skip(skip)
-          .limit(16)
-          .exec();
-        //console.log(students);
-        res.json(students);
-      }
-    } else {
-      res.json([]);
-    }
+      const students = await Student.find({
+        $or: [
+          { student_id: regex },
+          { first_name: regex },
+          { middle_name: regex },
+          { last_name: regex },
+          { search_keywords: regex },
+        ],
+      })
+        .sort({ first_name: 1 })
+        .skip(skip)
+        .limit(16)
+        .exec();
+      console.log(students);
+      res.json(students);
+    } 
   } catch (error) {
     return next(error + searchText);
   }
 };
+
+function removeAccents(str) {
+  return str.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
 
 exports.createStudent = createStudent;
 exports.getStudentsPaginated = getStudentsPaginated;
