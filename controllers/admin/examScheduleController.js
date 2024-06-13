@@ -125,14 +125,26 @@ const importExamSchedules = async (req, res, next) => {
 };
 
 const importExamSchedulesExcels = async (req, res, next) => {
+  const { term, schoolYear } = req.body;
+
   try {
     if (req.files.length > 0) {
+      // Tách chuỗi schoolYear thành các giá trị from và to
+      const schoolYearParts = schoolYear.split("-").map((part) => part.trim());
+      const fromYear = parseInt(schoolYearParts[0], 10);
+      const toYear = parseInt(schoolYearParts[1], 10);
+
       const newFiles = req.files.map((file, i) => {
         return {
           file_name: file.originalname,
           mimetype: file.mimetype,
           type: "EXCEL",
           file_path: file.path,
+          term: term,
+          year: {
+            from: fromYear,
+            to: toYear,
+          },
         };
       });
       const uploadedFiles = await UploadFile.insertMany(newFiles);
@@ -150,10 +162,41 @@ const importExamSchedulesExcels = async (req, res, next) => {
 };
 
 const getFilesList = async (req, res, next) => {
-  const folderPath = path.join("public", "uploads", "exam-schedules");
+  //const folderPath = path.join("public", "uploads", "exam-schedules");
+  const term = parseInt(req.query.term, 10) || 1;
+  const currentYear = new Date().getFullYear();
+
+  let fromYear, toYear;
+
+  const schoolYear = req.query.schoolYear;
+
+  if (schoolYear) {
+    const schoolYearParts = schoolYear.split("-").map((part) => part.trim());
+    fromYear = parseInt(schoolYearParts[0], 10);
+    toYear = parseInt(schoolYearParts[1], 10);
+
+    if (isNaN(fromYear) || isNaN(toYear)) {
+      const error = new HttpError("Năm học không hợp lệ!", 400);
+      return next(error);
+    }
+  } else {
+    if (term === 1) {
+      fromYear = currentYear;
+    } else if (term === 2 || term === 3) {
+      fromYear = currentYear - 1;
+    } else {
+      const error = new HttpError("Học kỳ không hợp lệ!", 400);
+      return next(error);
+    }
+    toYear = fromYear + 1;
+  }
 
   try {
-    const files = await UploadFile.find().sort({ created_at: -1 });
+    const files = await UploadFile.find({
+      term: term,
+      year: { from: fromYear, to: toYear },
+    }).sort({ created_at: -1 });
+
     res.json({ files: files });
   } catch (err) {
     console.log("error readir: ", err);
@@ -163,7 +206,7 @@ const getFilesList = async (req, res, next) => {
 };
 
 const importExamSchedulesFromExcel = async (req, res, next) => {
-  const fileIds = req.body.chooseFiles;
+  const fileIds = req.body.selectedFiles;
 
   try {
     const files = await UploadFile.find({ _id: { $in: fileIds } });
@@ -211,6 +254,61 @@ const importExamSchedulesFromExcel = async (req, res, next) => {
     const error = new HttpError(err.message, 500);
     return next(error);
   }
+};
+
+const deleteSelectedFiles = async (req, res, next) => {
+  const fileIds = req.body.selectedFiles;
+
+  try {
+    const files = await UploadFile.find({ _id: { $in: fileIds } });
+
+    if (files.length > 0) {
+      const failedDeletionFiles = await deleteFiles(files);
+      res.json({ failed_deletetion_files: failedDeletionFiles });
+    } else {
+      const error = new HttpError("Không xác định được files đã chọn!");
+      return next(error);
+    }
+  } catch (err) {
+    console.error("delete exam schedules files----------- ", err);
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+};
+
+const deleteFiles = async (files) => {
+  const failedDeletions = [];
+
+  if (files.length > 0) {
+    const deletePromises = files.map(async (file) => {
+      const filePath = path.join(__dirname, file.file_path);
+      try {
+        fs.unlink(filePath);
+        console.log("Đã xóa file:", filePath);
+
+        // Xóa file khỏi DB nếu unlink thành công
+        await UploadFile.findByIdAndDelete(file._id);
+        console.log("Đã xóa file khỏi DB:", file._id);
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          // File does not exist
+          console.error("File không tồn tại:", filePath);
+        } else {
+          // Other errors
+          console.error("Không thể xóa file:", err);
+        }
+        failedDeletions.push(file.file_name);
+      }
+    });
+    try {
+      await Promise.all(deletePromises);
+    } catch (err) {
+      console.error("Lỗi khi xử lý xóa các file:", err);
+      throw err;
+    }
+  }
+
+  return failedDeletions;
 };
 
 const readFileDataFromExcel = async (path) => {
@@ -346,4 +444,5 @@ module.exports = {
   importExamSchedulesFromExcel,
   getFilesList,
   getExamScheduleReport,
+  deleteSelectedFiles,
 };

@@ -160,10 +160,11 @@ const getAccountsPaginated = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || null;
+    const roleFilter = req.query.role || null;
 
     if (page < 1 || limit < 1) {
       const error = new HttpError(
-        "Số trang hoặc số dòng mỗi trang yêu cầu không hơp lệ!",
+        "Số trang hoặc số dòng mỗi trang yêu cầu không hợp lệ!",
         400
       );
       return next(error);
@@ -183,21 +184,17 @@ const getAccountsPaginated = async (req, res, next) => {
       };
     }
 
+    if (roleFilter) {
+      query = { ...query, role: roleFilter };
+    }
+
     const skip = (page - 1) * limit;
 
     const accounts = await Account.aggregate([
-      {
-        $match: query,
-      },
-      {
-        $sort: { username: 1 },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
+      { $match: query },
+      { $sort: { username: 1 } },
+      { $skip: skip },
+      { $limit: limit },
     ]);
 
     const totalAccounts = await Account.countDocuments(query);

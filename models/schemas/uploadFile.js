@@ -15,6 +15,11 @@ const uploadFileSchema = new Schema(
     },
     file_path: { type: String, required: true },
     has_used: { type: Boolean, default: false },
+    term: { type: Number, required: true },
+    year: {
+      from: { type: Number, required: true },
+      to: { type: Number, required: true },
+    },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

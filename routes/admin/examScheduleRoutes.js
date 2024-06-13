@@ -26,6 +26,8 @@ router.post(
   "/excel-import",
   AdminExamScheduleController.importExamSchedulesFromExcel
 );
+router.post("/delete-files", AdminExamScheduleController.deleteSelectedFiles);
+
 router.get("/excel-files", AdminExamScheduleController.getFilesList);
 router.get("/getYear", ExamScheduleController.getExamYears);
 router.get("/getTerm", ExamScheduleController.getTermsOfYear);
