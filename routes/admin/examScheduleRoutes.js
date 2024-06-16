@@ -36,6 +36,10 @@ router.get("/getBuilding", ExamScheduleController.getBuildingByDate);
 router.get("/getTime", ExamScheduleController.getExamTimeByBuilding);
 router.get("/getRoom", ExamScheduleController.getRoomByExamTime);
 router.get("/getStudent", ExamScheduleController.getStudentByRoom);
+router.get(
+  "/getFileFilterYear",
+  AdminExamScheduleController.getUploadedFileYears
+);
 
 router.get("/reports", AdminExamScheduleController.getExamScheduleReport);
 

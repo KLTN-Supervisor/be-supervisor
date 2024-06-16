@@ -161,6 +161,24 @@ const importExamSchedulesExcels = async (req, res, next) => {
   }
 };
 
+const getUploadedFileYears = async (req, res, next) => {
+  try {
+    const uploadFiles = await UploadFile.find({});
+
+    const years = uploadFiles.map((uploadFile) => {
+      return uploadFile.year.from; // Lấy năm từ trường from của year
+    });
+
+    const uniqueYears = years.filter(
+      (year, index) => years.indexOf(year) === index
+    );
+
+    res.json(uniqueYears);
+  } catch (error) {
+    return next(error);
+  }
+};
+
 const getFilesList = async (req, res, next) => {
   //const folderPath = path.join("public", "uploads", "exam-schedules");
   const term = parseInt(req.query.term, 10) || 1;
@@ -325,6 +343,23 @@ const readFileDataFromExcel = async (path) => {
     let result = [];
     let currentExam = null;
 
+    // Regular expression to match the term and year format
+    const termYearRegex = /Học Kỳ (\d+) - Năm Học (\d{4}-\d{4})/;
+    const termYearMatch = data.find((i) => termYearRegex.test(i?.["A"]));
+
+    if (!termYearMatch) {
+      throw new Error(
+        "Không tìm thấy thông tin học kỳ và năm học trong file excel!"
+      );
+    }
+
+    const [_, term, year] = termYearMatch?.["A"].match(termYearRegex);
+    const [fromYear, toYear] = year.split("-").map(Number);
+
+    console.log(
+      `Hoc ky: ${term}, nam hoc: ${year}, from-to: ${fromYear}, ${toYear}`
+    );
+
     for (let item of data) {
       if (item?.["C"] === "Ngày Thi :") {
         if (currentExam !== null) {
@@ -341,9 +376,6 @@ const readFileDataFromExcel = async (path) => {
           result.push(currentExam);
         }
         const [time, room_name] = item?.["E"]?.split(" - Phòng thi: ");
-        const [term, year] = data
-          .find((i) => i?.["A"] === "Học Kỳ 02 - Năm Học 2023-2024")
-          ?.["A"]?.split(" - ");
 
         const [datePart, timePart] = time.split(" - Giờ Thi: ");
         const dateParts = datePart.split("/");
@@ -365,10 +397,10 @@ const readFileDataFromExcel = async (path) => {
         currentExam = {
           room: room._id,
           start_time: start_time,
-          term: term?.split(" Kỳ ")[1],
+          term: term,
           year: {
-            from: year?.split(" Học ")[1]?.split("-")[0],
-            to: year?.split(" Học ")[1]?.split("-")[1],
+            from: fromYear,
+            to: toYear,
           },
           subject: subject._id,
           students: [],
@@ -445,4 +477,5 @@ module.exports = {
   getFilesList,
   getExamScheduleReport,
   deleteSelectedFiles,
+  getUploadedFileYears,
 };
