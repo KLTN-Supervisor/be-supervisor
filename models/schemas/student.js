@@ -54,6 +54,8 @@ const studentSchema = new Schema(
     class: { type: String, required: true, minLength: 6 },
     current_address: { type: String, required: true },
     hometown: { type: String },
+    major: { type: String, required: true },
+    faculty: { type: String, required: true },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

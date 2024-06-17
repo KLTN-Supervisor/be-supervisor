@@ -73,7 +73,7 @@ const importStudents = async (req, res, next) => {
       }
     }
 
-    res.json({ message: "Import success!" });
+    res.json({ message: "Import thành công!" });
   } catch (err) {
     console.error("admin import students----------- ", err);
     const error = new HttpError(err.message, 500);

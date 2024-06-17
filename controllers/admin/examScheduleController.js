@@ -181,6 +181,8 @@ const getUploadedFileYears = async (req, res, next) => {
 
 const getFilesList = async (req, res, next) => {
   //const folderPath = path.join("public", "uploads", "exam-schedules");
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
   const term = parseInt(req.query.term, 10) || 1;
   const currentYear = new Date().getFullYear();
 
@@ -209,13 +211,26 @@ const getFilesList = async (req, res, next) => {
     toYear = fromYear + 1;
   }
 
-  try {
-    const files = await UploadFile.find({
-      term: term,
-      year: { from: fromYear, to: toYear },
-    }).sort({ created_at: -1 });
+  const skip = (page - 1) * limit;
+  const filter = {
+    term: term,
+    year: { from: fromYear, to: toYear },
+  };
 
-    res.json({ files: files });
+  try {
+    const files = await UploadFile.find(filter)
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalFiles = await UploadFile.countDocuments(filter);
+
+    res.json({
+      files: files,
+      current_page: page,
+      total_pages: Math.ceil(totalFiles / limit),
+      total_files: totalFiles,
+    });
   } catch (err) {
     console.log("error readir: ", err);
     const error = new HttpError("Error occurred!", 500);
