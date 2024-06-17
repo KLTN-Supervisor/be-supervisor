@@ -66,7 +66,6 @@ const getBuildingByDate = async (req, res, next) => {
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
     const date = new Date(year, month - 1, day + 1); // Tạo đối tượng Date từ ngày, tháng và năm
-    //console.log(date);
 
     const roomIds = await ExamSchedule.find({
       $expr: {
@@ -76,7 +75,7 @@ const getBuildingByDate = async (req, res, next) => {
         ],
       },
     }).distinct("room");
-    //console.log(roomIds);
+
     const rooms = await Room.find({ _id: { $in: roomIds } });
     const buildingIds = rooms.map((room) => room.building);
     const buildings = await Building.find({ _id: { $in: buildingIds } });
@@ -107,11 +106,10 @@ const getExamTimeByBuilding = async (req, res, next) => {
     const uniqueexamSchedules = examSchedules.filter(
       (examSchedule, index) => examSchedules.indexOf(examSchedule) === index
     );
-    // console.log(uniqueexamSchedules);
+
     if (uniqueexamSchedules) {
       uniqueexamSchedules.forEach((examSchedule) => {
         const startTime = examSchedule.start_time;
-        //console.log(startTime);
         times.push(startTime);
       });
     } else {
@@ -120,7 +118,6 @@ const getExamTimeByBuilding = async (req, res, next) => {
     const uniqueTimes = times
       .map((time) => time.toISOString()) // Chuyển đổi các đối tượng Date thành chuỗi ISO
       .filter((time, index, array) => array.indexOf(time) === index);
-    //console.log(uniqueTimes);
     res.json(uniqueTimes);
   } catch (error) {
     return next(error);
@@ -138,7 +135,6 @@ const getRoomByExamTime = async (req, res, next) => {
     });
     const examRoomIds = examSchedules.map((exam) => exam.room);
     const examRooms = await Room.find({ _id: { $in: examRoomIds } });
-    //console.log(examRooms);
     res.json(examRooms);
   } catch (error) {
     return next(error);
@@ -153,11 +149,9 @@ const getStudentByRoom = async (req, res, next) => {
       start_time: date,
       room: room,
     });
-    //console.log(examSchedules);
     let examStudents = [];
     for (const student of examSchedules.students) {
       const examStudent = await Student.findOne({ _id: student.student });
-      //console.log("examStudent", examStudent);
       examStudents.push({
         student: examStudent,
         attendance: student.attendance,
@@ -181,7 +175,9 @@ const getRoomInfo = async (req, res, next) => {
     const examRoom = await Room.findOne({ _id: examSchedule.room });
     const examSubject = await Subject.findOne({ _id: examSchedule.subject });
 
-    res.json({room_name: examRoom.room_name, start_time: date, year: examSchedule.year, term: examSchedule.term, subject_name: examSubject.subject_name, quantity: examSchedule.students.length});
+    res.json({room_name: examRoom.room_name, start_time: date, year: examSchedule.year, term: examSchedule.term, 
+      subject_id: examSubject.subject_id, subject_name: examSubject.subject_name, subject_credit: examSubject.credit, 
+      quantity: examSchedule.students.length, });
   } catch (error) {
     return next(error);
   }
@@ -198,7 +194,6 @@ const getSuspiciousStudents = async (req, res, next) => {
         $lt: new Date(year, month - 1, day + 1, 0, 0, 0),
       },
     });
-    //console.log(examSchedules);
     // Tạo một đối tượng để lưu trữ các sinh viên và các lịch thi của họ
     const frequencyMap = {};
     // Duyệt qua từng lịch thi
@@ -221,9 +216,7 @@ const getSuspiciousStudents = async (req, res, next) => {
 
     let examStudents = [];
     for (const student of duplicateStudents) {
-      // console.log(student);
       const examStudent = await Student.findOne({ _id: student });
-      // console.log("examStudent", examStudent);
       const schedules = [];
       for (const exam of examSchedules) {
         const isStudentPresent = exam.students.some((s) => s.student.toString() === student);  
@@ -236,9 +229,7 @@ const getSuspiciousStudents = async (req, res, next) => {
       }
       const studentWithSchedules = examStudent.toJSON();
       studentWithSchedules.schedules = schedules; 
-      examStudents.push(studentWithSchedules);
-      console.log(examStudents);
-      
+      examStudents.push(studentWithSchedules);     
     }
     res.json(examStudents);
   } catch (err) {
@@ -335,6 +326,45 @@ const deleteExamScheduleReport = async (req, res, next) => {
   }
 };
 
+const getExamScheduleByDate = async (req, res, next) => {
+  try {
+    const dateParam = req.query.date || "00/00/0000";
+    const [day, month, year] = dateParam.split("/").map(Number);
+    const date = new Date(year, month - 1, day + 1); // Tạo đối tượng Date từ ngày, tháng và năm
+
+    const examSchedules = await ExamSchedule.find({
+      $expr: {
+        $eq: [
+          { $dateToString: { format: "%Y-%m-%d", date: "$start_time" } },
+          { $dateToString: { format: "%Y-%m-%d", date: date } },
+        ],
+      },
+    });
+
+    let examScheduleInfos = [];
+    for(const examSchedule of examSchedules){
+      const examRoom = await Room.findOne({ _id: examSchedule.room });
+      const examSubject = await Subject.findOne({ _id: examSchedule.subject });
+
+      let examStudents = [];
+      for (const student of examSchedule.students) {
+        const examStudent = await Student.findOne({ _id: student.student });
+        examStudents.push({
+          student: examStudent,
+          attendance: student.attendance,
+        });
+      }
+
+      examScheduleInfos.push({room_name: examRoom.room_name, start_time: examSchedule.start_time, year: examSchedule.year, term: examSchedule.term, 
+        subject_id: examSubject.subject_id, subject_name: examSubject.subject_name, subject_credit: examSubject.credit, 
+        quantity: examSchedule.students.length, students: examStudents});
+    }
+    res.json(examScheduleInfos);
+  } catch (error) {
+    return next(error);
+  }
+};
+
 exports.getExamYears = getExamYears;
 exports.getTermsOfYear = getTermsOfYear;
 exports.getExamDatesByTerm = getExamDatesByTerm;
@@ -348,3 +378,4 @@ exports.noteReport = noteReport;
 exports.getExamScheduleReport = getExamScheduleReport;
 exports.deleteExamScheduleReport = deleteExamScheduleReport;
 exports.getRoomInfo = getRoomInfo;
+exports.getExamScheduleByDate = getExamScheduleByDate;
