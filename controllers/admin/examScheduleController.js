@@ -124,7 +124,7 @@ const importExamSchedules = async (req, res, next) => {
   }
 };
 
-const importExamSchedulesExcels = async (req, res, next) => {
+const uploadExamSchedulesExcels = async (req, res, next) => {
   const { term, schoolYear } = req.body;
 
   try {
@@ -297,7 +297,7 @@ const deleteSelectedFiles = async (req, res, next) => {
 
     if (files.length > 0) {
       const failedDeletionFiles = await deleteFiles(files);
-      res.json({ failed_deletetion_files: failedDeletionFiles });
+      res.json({ failed_deletion_files: failedDeletionFiles });
     } else {
       const error = new HttpError("Không xác định được files đã chọn!");
       return next(error);
@@ -314,14 +314,14 @@ const deleteFiles = async (files) => {
 
   if (files.length > 0) {
     const deletePromises = files.map(async (file) => {
-      const filePath = path.join(__dirname, file.file_path);
+      const filePath = path.join(file.file_path);
       try {
-        fs.unlink(filePath);
-        console.log("Đã xóa file:", filePath);
+        await fs.promises.unlink(filePath);
+        //console.log("Đã xóa file:", filePath);
 
         // Xóa file khỏi DB nếu unlink thành công
         await UploadFile.findByIdAndDelete(file._id);
-        console.log("Đã xóa file khỏi DB:", file._id);
+        //console.log("Đã xóa file khỏi DB:", file._id);
       } catch (err) {
         if (err.code === "ENOENT") {
           // File does not exist
@@ -330,7 +330,7 @@ const deleteFiles = async (files) => {
           // Other errors
           console.error("Không thể xóa file:", err);
         }
-        failedDeletions.push(file.file_name);
+        failedDeletions.push({ _id: file._id, file_name: file.file_name });
       }
     });
     try {
@@ -487,7 +487,7 @@ const getExamScheduleReport = async (req, res, next) => {
 
 module.exports = {
   importExamSchedules,
-  importExamSchedulesExcels,
+  uploadExamSchedulesExcels,
   importExamSchedulesFromExcel,
   getFilesList,
   getExamScheduleReport,

@@ -19,7 +19,7 @@ router.post(
 router.post(
   "/excels-upload",
   uploadToFolderPath("exam-schedules").array("file"),
-  AdminExamScheduleController.importExamSchedulesExcels
+  AdminExamScheduleController.uploadExamSchedulesExcels
 );
 
 router.post(
