@@ -106,7 +106,7 @@ const importExamSchedules = async (req, res, next) => {
         // console.error("Invalid room IDs:", invalidRooms);
 
         const error = new HttpError(
-          "Some ids are invalid: \nInvalid student IDs: " +
+          "Các mã sinh viên không hợp lệ: " +
             invalidStudents +
             "\nInvalid inspector IDs: " +
             invalidInspectors +
@@ -134,29 +134,50 @@ const uploadExamSchedulesExcels = async (req, res, next) => {
       const fromYear = parseInt(schoolYearParts[0], 10);
       const toYear = parseInt(schoolYearParts[1], 10);
 
-      const newFiles = req.files.map((file, i) => {
-        return {
+      const newFiles = [];
+
+      for (const file of req.files) {
+        // Kiểm tra xem file đã tồn tại chưa
+        const existingFile = await UploadFile.findOne({
           file_name: file.originalname,
-          mimetype: file.mimetype,
-          type: "EXCEL",
-          file_path: file.path,
           term: term,
-          year: {
-            from: fromYear,
-            to: toYear,
-          },
-        };
-      });
-      const uploadedFiles = await UploadFile.insertMany(newFiles);
+          "year.from": fromYear,
+          "year.to": toYear,
+        });
+
+        if (existingFile) {
+          // Cập nhật thông tin file trong cơ sở dữ liệu
+          existingFile.file_path = file.path;
+          existingFile.has_used = false;
+          await existingFile.save();
+        } else {
+          // Thêm file mới vào danh sách
+          newFiles.push({
+            file_name: file.originalname,
+            mimetype: file.mimetype,
+            type: "EXCEL",
+            file_path: file.path,
+            term: term,
+            year: {
+              from: fromYear,
+              to: toYear,
+            },
+          });
+        }
+      }
+
+      // Lưu các file mới vào cơ sở dữ liệu
+      const uploadedFiles =
+        newFiles.length > 0 ? await UploadFile.insertMany(newFiles) : [];
 
       res.json({ uploaded_files: uploadedFiles });
     } else {
-      const error = new HttpError("No files has been upload!", 404);
+      const error = new HttpError("Không có files được tải lên!", 404);
       return next(error);
     }
   } catch (err) {
     console.log("upload files -------", err);
-    const error = new HttpError("Error occured, please try again!", 500);
+    const error = new HttpError("Có lỗi trong quá trình tải files", 500);
     return next(error);
   }
 };

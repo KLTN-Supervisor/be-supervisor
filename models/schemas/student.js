@@ -22,7 +22,7 @@ const studentSchema = new Schema(
       unique: true,
     },
     portrait_img: { type: String, default: "" },
-    first_name: { type: String, required: true, minLength: 1, maxLength: 8 },
+    first_name: { type: String, required: true, minLength: 1, maxLength: 10 },
     middle_name: { type: String, required: true, minLength: 2 },
     last_name: { type: String, required: true, minLength: 2, maxLength: 12 },
     search_keywords: { type: String, required: true },

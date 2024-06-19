@@ -172,6 +172,8 @@ const getInspectorsPaginated = async (req, res, next) => {
 
     if (searchQuery) {
       const searchRegex = new RegExp(searchQuery, "i");
+      const searchQueryNoAccents = removeVietnameseTones(searchQuery);
+      const searchRegexNoAccents = new RegExp(searchQueryNoAccents, "i");
       query = {
         $or: [
           { inspector_id: searchRegex },
@@ -179,6 +181,7 @@ const getInspectorsPaginated = async (req, res, next) => {
           { middle_name: searchRegex },
           { last_name: searchRegex },
           { search_keywords: searchRegex },
+          { search_keywords: searchRegexNoAccents },
         ],
       };
     }
@@ -186,18 +189,10 @@ const getInspectorsPaginated = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const inspectors = await Inspector.aggregate([
-      {
-        $match: query,
-      },
-      {
-        $sort: { inspector_id: 1, first_name: 1 },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
+      { $match: query },
+      { $sort: { inspector_id: 1, first_name: 1 } },
+      { $skip: skip },
+      { $limit: limit },
     ]);
 
     const totalInspectors = await Inspector.countDocuments(query);

@@ -147,7 +147,9 @@ const resetAccountPassword = async (req, res, next) => {
       emailMessage: `Mật khẩu của bạn đã được đặt lại. Mật khẩu mới là: ${newPassword}`,
     });
 
-    res.json({ message: "Đặt lại thành công!" });
+    res.json({
+      message: "Mật khẩu mới đã được gửi đến email liên kết với tài khoản!",
+    });
   } catch (err) {
     console.log("reset pass: ", err);
     const error = new HttpError("Có lỗi xảy ra khi cập nhật!", 500);

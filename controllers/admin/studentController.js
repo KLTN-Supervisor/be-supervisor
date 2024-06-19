@@ -233,6 +233,8 @@ const getStudentsPaginated = async (req, res, next) => {
 
     if (searchQuery) {
       const searchRegex = new RegExp(searchQuery, "i");
+      const searchQueryNoAccents = removeVietnameseTones(searchQuery);
+      const searchRegexNoAccents = new RegExp(searchQueryNoAccents, "i");
       query = {
         $or: [
           { student_id: searchRegex },
@@ -240,6 +242,7 @@ const getStudentsPaginated = async (req, res, next) => {
           { middle_name: searchRegex },
           { last_name: searchRegex },
           { search_keywords: searchRegex },
+          { search_keywords: searchRegexNoAccents },
         ],
       };
     }
@@ -247,18 +250,10 @@ const getStudentsPaginated = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const students = await Student.aggregate([
-      {
-        $match: query,
-      },
-      {
-        $sort: { student_id: -1, first_name: 1 },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
+      { $match: query },
+      { $sort: { student_id: -1, first_name: 1 } },
+      { $skip: skip },
+      { $limit: limit },
     ]);
 
     const totalStudents = await Student.countDocuments(query);
