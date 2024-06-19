@@ -32,6 +32,7 @@ if (process.env.NODE_ENV !== "production") {
 //session
 app.use(
   session({
+    name: "ISSsession",
     secret: process.env.SESSION_KEY,
     resave: false,
     saveUninitialized: false,
@@ -39,7 +40,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "Lax",
       //maxAge: 1000 * 60 * 60 * 8, // 8 hours,
     },
   })
