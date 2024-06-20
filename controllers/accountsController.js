@@ -160,8 +160,6 @@ const login = async (req, res, next) => {
       if (err) next(err);
       res.json({ message: "Đăng nhập thành công!" });
     });
-
-    console.log("session: ", req.session);
   } catch (err) {
     console.log(err);
     const error = new HttpError(
