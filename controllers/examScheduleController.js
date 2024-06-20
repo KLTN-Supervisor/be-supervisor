@@ -67,6 +67,8 @@ const getBuildingByDate = async (req, res, next) => {
     const [day, month, year] = dateParam.split("/").map(Number);
     const date = new Date(year, month - 1, day + 1); // Tạo đối tượng Date từ ngày, tháng và năm
 
+    console.log(date);
+
     const roomIds = await ExamSchedule.find({
       $expr: {
         $eq: [
@@ -76,9 +78,14 @@ const getBuildingByDate = async (req, res, next) => {
       },
     }).distinct("room");
 
+    console.log(roomIds);
+
     const rooms = await Room.find({ _id: { $in: roomIds } });
     const buildingIds = rooms.map((room) => room.building);
+
+    console.log(buildingIds);
     const buildings = await Building.find({ _id: { $in: buildingIds } });
+    console.log(buildings);
     res.json(buildings);
   } catch (error) {
     return next(error);
@@ -175,9 +182,16 @@ const getRoomInfo = async (req, res, next) => {
     const examRoom = await Room.findOne({ _id: examSchedule.room });
     const examSubject = await Subject.findOne({ _id: examSchedule.subject });
 
-    res.json({room_name: examRoom.room_name, start_time: date, year: examSchedule.year, term: examSchedule.term, 
-      subject_id: examSubject.subject_id, subject_name: examSubject.subject_name, subject_credit: examSubject.credit, 
-      quantity: examSchedule.students.length, });
+    res.json({
+      room_name: examRoom.room_name,
+      start_time: date,
+      year: examSchedule.year,
+      term: examSchedule.term,
+      subject_id: examSubject.subject_id,
+      subject_name: examSubject.subject_name,
+      subject_credit: examSubject.credit,
+      quantity: examSchedule.students.length,
+    });
   } catch (error) {
     return next(error);
   }
@@ -219,7 +233,9 @@ const getSuspiciousStudents = async (req, res, next) => {
       const examStudent = await Student.findOne({ _id: student });
       const schedules = [];
       for (const exam of examSchedules) {
-        const isStudentPresent = exam.students.some((s) => s.student.toString() === student);  
+        const isStudentPresent = exam.students.some(
+          (s) => s.student.toString() === student
+        );
         if (isStudentPresent) {
           const examRoom = await Room.findOne({ _id: exam.room });
           if (examRoom) {
@@ -228,8 +244,8 @@ const getSuspiciousStudents = async (req, res, next) => {
         }
       }
       const studentWithSchedules = examStudent.toJSON();
-      studentWithSchedules.schedules = schedules; 
-      examStudents.push(studentWithSchedules);     
+      studentWithSchedules.schedules = schedules;
+      examStudents.push(studentWithSchedules);
     }
     res.json(examStudents);
   } catch (err) {
@@ -342,7 +358,7 @@ const getExamScheduleByDate = async (req, res, next) => {
     });
 
     let examScheduleInfos = [];
-    for(const examSchedule of examSchedules){
+    for (const examSchedule of examSchedules) {
       const examRoom = await Room.findOne({ _id: examSchedule.room });
       const examSubject = await Subject.findOne({ _id: examSchedule.subject });
 
@@ -355,9 +371,17 @@ const getExamScheduleByDate = async (req, res, next) => {
         });
       }
 
-      examScheduleInfos.push({room_name: examRoom.room_name, start_time: examSchedule.start_time, year: examSchedule.year, term: examSchedule.term, 
-        subject_id: examSubject.subject_id, subject_name: examSubject.subject_name, subject_credit: examSubject.credit, 
-        quantity: examSchedule.students.length, students: examStudents});
+      examScheduleInfos.push({
+        room_name: examRoom.room_name,
+        start_time: examSchedule.start_time,
+        year: examSchedule.year,
+        term: examSchedule.term,
+        subject_id: examSubject.subject_id,
+        subject_name: examSubject.subject_name,
+        subject_credit: examSubject.credit,
+        quantity: examSchedule.students.length,
+        students: examStudents,
+      });
     }
     res.json(examScheduleInfos);
   } catch (error) {
