@@ -62,6 +62,7 @@ const getExamDatesByTerm = async (req, res, next) => {
 };
 
 const getBuildingByDate = async (req, res, next) => {
+  console.log("vào get building");
   try {
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
