@@ -77,6 +77,8 @@ const updateAccount = async (req, res, next) => {
 
   if (image) updateFields.avatar = image.path.replace("public\\uploads\\", "");
 
+  updateFields.search_keywords = removeVietnameseTones(updateFields.fullname);
+
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
   //   "first_name",

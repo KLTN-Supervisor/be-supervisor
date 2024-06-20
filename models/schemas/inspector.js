@@ -29,7 +29,7 @@ const inspectorSchema = new Schema(
     date_of_birth: { type: Date, required: true },
     place_of_birth: { type: String, required: true },
     gender: { type: Boolean },
-    email: { type: String, trim: true, unique: true },
+    email: { type: String, trim: true, default: "" },
     phone: { type: String, minLength: 10, maxLength: 12 },
     nationality: { type: String, required: true },
     permanent_address: {
