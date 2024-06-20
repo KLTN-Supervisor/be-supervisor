@@ -7,7 +7,7 @@ const reportSchema = new Schema(
   {
     note: { type: String, required: true },
     images: [{ type: String, required: true }],
-    time: { type: Types.ObjectId, ref: "Exam_shedule" },
+    time: { type: Types.ObjectId, ref: "Exam_schedule" },
     report_type: {
       type: String,
       enum: ["PROBLEM", "REPORT"],

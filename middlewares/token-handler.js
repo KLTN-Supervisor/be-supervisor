@@ -113,10 +113,10 @@ const verifyAdminAccessToken = async (req, res, next) => {
         if (err) {
           return next(new HttpError("Có lỗi xảy ra khi xác thực!", 500));
         }
-        res.clearCookie("connect.sid", {
+        res.clearCookie("ISSsession", {
           httpOnly: true,
-          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
           secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         });
         return next(new HttpError("Phiên hoạt động của bạn đã hết hạn!", 401));
       });

@@ -220,7 +220,7 @@ const logout = (req, res) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.clearCookie("connect.sid", {
+      res.clearCookie("ISSsession", {
         httpOnly: true,
         sameSite: process.env.NODE_ENV === "production" ? "Lax" : "None",
         secure: process.env.NODE_ENV === "production",
