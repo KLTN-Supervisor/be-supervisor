@@ -114,6 +114,22 @@ const trainingData = async (req, res, next) => {
         }
       });
 
+      if(trainedStudents){
+        await Student.find({
+          student_id: { $nin: trainedStudents }, // Find students whose email is not in the trainedStudents array
+          learning_status: 'LEARNING', // Filter for students with 'LEARNING' status
+        })
+        .select('email') // Only select the email field
+        .then(students => {
+          for(const student of students){
+            const message = `Sinh viên gửi hình cho phòng đào tạo \n Nếu đã gửi hãy bỏ qua tin nhắn này`;
+            const subject = `Cảnh báo thiếu hình trên hệ thống`;
+            sendMail ({ mailto: student.email, subject: subject, emailMessage: message });
+          }
+
+        })
+      }
+
       const descriptors = await Promise.all(descriptorPromises);
       const validDescriptors = descriptors.filter((d) => d !== null);
 
