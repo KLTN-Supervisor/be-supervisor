@@ -6,10 +6,11 @@ const canvas = require("canvas");
 const { Canvas, Image } = require("canvas");
 const directoryPath = "./public/uploads/students-images";
 const Student = require("../models/schemas/student");
+const Train = require("../models/schemas/train");
 const sendMail = require("../utils/email");
 
 const trainingFunc = async (studentUrl) => {
-  console.log("Training: ", studentUrl);
+  // console.log("Training: ", studentUrl);
   faceapi.env.monkeyPatch({ Canvas, Image });
   const img = await canvas.loadImage(studentUrl);
 
@@ -21,7 +22,7 @@ const trainingFunc = async (studentUrl) => {
 };
 
 const trainStudent = async (studentLabel) => {
-  console.log("Training student:", studentLabel);
+  // console.log("Training student:", studentLabel);
   const listImgPromise = [];
   const listStudentsFolders = fs.readdirSync(
     `${directoryPath}/${studentLabel}`
@@ -39,18 +40,41 @@ const trainStudent = async (studentLabel) => {
     studentLabel,
     descriptions
   );
-  console.log("Done student:", studentLabel, LabeledFaceDescriptors);
   return LabeledFaceDescriptors;
 };
 
-async function saveFile(filename, data) {
+async function saveFile(filename, descriptors) {
   try {
-    await fs.promises.writeFile(filename, data);
-    //console.log(`Face descriptors saved to ${filename}`);
+    // Read the existing data from the file
+    let existingData = [];
+    try {
+      const existingDataString = await fs.promises.readFile(filename, 'utf8');
+      existingData = JSON.parse(existingDataString);
+    } catch (error) {
+      // If the file doesn't exist yet, existingData will be an empty array
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    for(const descriptor of JSON.parse(descriptors)){
+      // Check if the label already exists in the existing data
+      const existingItemIndex = existingData.findIndex(item => item.label === descriptor.label);
+      if (existingItemIndex !== -1) {
+        existingData[existingItemIndex].descriptors = descriptor.descriptors;
+      } else {
+        // If the label doesn't exist, add the new descriptor
+        existingData.push(descriptor);
+      }
+    }
+
+    // Write the updated data to the file
+    await fs.promises.writeFile(filename, JSON.stringify(existingData));
   } catch (error) {
     console.error("Error saving face descriptors:", error);
   }
 }
+
 
 const trainingData = async (req, res, next) => {
   try {
@@ -71,18 +95,34 @@ const trainingData = async (req, res, next) => {
         const filePath = path.join(directoryPath, file);
         return fs.statSync(filePath).isDirectory();
       });
+      
+      const array = await Train.findOne({}, {}, { sort: { created_at: -1 } })
+      .then((latestTrain) => {
+        return latestTrain.label;
+      })
+      .catch((error) => {
+        console.error(error);
+        return null;
+      });
 
       const descriptorPromises = folders.map(async (folder) => {
         trainedStudents.push(folder.toString());
-        return await trainStudent(folder);
+        if (array.includes(folder.toString())) {
+          return await trainStudent(folder);
+        } else {
+          return null;
+        }
       });
 
       const descriptors = await Promise.all(descriptorPromises);
-      await saveFile(
+      const validDescriptors = descriptors.filter((d) => d !== null);
+
+      saveFile(
         "labeledFacesData.json",
-        JSON.stringify(descriptors.map((x) => x.toJSON()))
+        JSON.stringify(validDescriptors.map((x) => x.toJSON()))
       );
-      return descriptors;
+        
+      return validDescriptors;
     });
 
     // await notifyMissingStudents(trainedStudents);
@@ -99,7 +139,7 @@ const getTrainningData = async (req, res, next) => {
     const data = await fs.promises.readFile(filePath, "utf8");
 
     const labeledFaceDescriptors = JSON.parse(data);
-    console.log("labeledFaceDescriptors", labeledFaceDescriptors);
+    // console.log("labeledFaceDescriptors", labeledFaceDescriptors);
     res.json(labeledFaceDescriptors);
     // res.json(faceDescriptors);
   } catch (error) {
