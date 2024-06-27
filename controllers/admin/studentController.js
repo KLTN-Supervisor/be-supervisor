@@ -1,5 +1,6 @@
 const HttpError = require("../../models/application/httpError");
 const Student = require("../../models/schemas/student");
+const Train = require("../../models/schemas/train");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
 const fs = require("fs");
@@ -118,6 +119,7 @@ const handleUncompressFile = async (req, res, next) => {
 const organizeFilesById = async (targetPath) => {
   try {
     const files = await fs.promises.readdir(targetPath);
+    const labelSet = new Set();
 
     for (const file of files) {
       const filePath = path.join(targetPath, file);
@@ -134,7 +136,7 @@ const organizeFilesById = async (targetPath) => {
             "student-images"
           );
           if (!fs.existsSync(newDirPath)) {
-            await fs.promises.mkdir(newDirPath);
+            await fs.promises.mkdir(newDirPath, { recursive: true });
           }
 
           const newFilePath = path.join(newDirPath, file);
@@ -166,8 +168,19 @@ const organizeFilesById = async (targetPath) => {
 
           const newFilePath = path.join(newDirPath, file);
           await fs.promises.rename(filePath, newFilePath);
+
+          label.add(id);
         }
       }
+    }
+
+    const labels = Array.from(labelSet);
+    const existingTrain = await Train.findOne({});
+    if (!existingTrain) {
+      await new Train({ label: labels }).save();
+    } else {
+      existingTrain.label = labels;
+      await existingTrain.save();
     }
   } catch (err) {
     console.error("Error while organizing files: ", err);
