@@ -169,7 +169,7 @@ const organizeFilesById = async (targetPath) => {
           const newFilePath = path.join(newDirPath, file);
           await fs.promises.rename(filePath, newFilePath);
 
-          label.add(id);
+          labelSet.add(id);
         }
       }
     }
