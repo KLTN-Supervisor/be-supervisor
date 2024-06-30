@@ -1,7 +1,7 @@
 const express = require("express");
 const { uploadToFolderPath } = require("../../configs/multerConfig");
 const AccountController = require("../../controllers/admin/accountController");
-const { check } = require("express-validator");
+const { body } = require("express-validator");
 const tokenHandler = require("../../middlewares/token-handler");
 const {
   createLengthValidator,
