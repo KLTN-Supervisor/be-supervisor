@@ -311,6 +311,34 @@ const noteReport = async (req, res, next) => {
   }
 };
 
+const updateReport = async (req, res, next) => {
+  try {
+    const date = req.query.date || "00/00/0000";
+    const room = req.query.room;
+    const { reportType, note, reportId } = req.body;
+    const images = req.files;
+
+    const imagesPath = images.map((image, i) =>
+      image.path.replace("public\\uploads\\", "")
+    );
+
+    const update = {
+      $set: {
+        report_type: reportType,
+        note: note,
+        time: examSchedule._id,
+        images: imagesPath,
+      },
+    };
+
+    await Report.updateOne({ _id: reportId }, update);
+
+    res.json(true);
+  } catch (err) {
+    return next(err);
+  }
+};
+
 const getExamScheduleReport = async (req, res, next) => {
   try {
     const date = req.query.date || "00/00/0000";
@@ -400,6 +428,7 @@ exports.getStudentByRoom = getStudentByRoom;
 exports.getSuspiciousStudents = getSuspiciousStudents;
 exports.attendanceStudent = attendanceStudent;
 exports.noteReport = noteReport;
+exports.updateReport = updateReport;
 exports.getExamScheduleReport = getExamScheduleReport;
 exports.deleteExamScheduleReport = deleteExamScheduleReport;
 exports.getRoomInfo = getRoomInfo;

@@ -29,6 +29,12 @@ router.post(
   ExamScheduleController.noteReport
 );
 
+router.put(
+  "/updateReport",
+  uploadToFolderPath("report-images").array("image"),
+  ExamScheduleController.updateReport
+);
+
 router.get("/getExamReports", ExamScheduleController.getExamScheduleReport);
 
 module.exports = router;
