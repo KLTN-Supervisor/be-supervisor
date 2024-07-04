@@ -53,7 +53,7 @@ const verifyAccessToken = async (req, res, next) => {
   //console.log("Session before check: ", req?.session?.id);
 
   if (!req.session?.access_token) {
-    const error = new HttpError("Chưa xác thực!", 403);
+    const error = new HttpError("Chưa xác thực!", 401);
     return next(error);
   }
 
@@ -90,7 +90,7 @@ const verifyAccessToken = async (req, res, next) => {
 
 const verifyAdminAccessToken = async (req, res, next) => {
   if (!req.session?.access_token) {
-    const error = new HttpError("Chưa xác thực!", 403);
+    const error = new HttpError("Chưa xác thực!", 401);
     return next(error);
   }
 

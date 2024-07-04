@@ -1,12 +1,20 @@
 const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 const storeFolder = (folder) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, `./public/uploads/${folder}`);
+      const dir = path.join(`./public/uploads/${folder}`);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true }); // Create the directory if it doesn't exist
+      }
+      cb(null, dir);
     },
     filename: (req, file, cb) => {
-      cb(null, file.originalname);
+      const ext = path.extname(file.originalname); // Lấy extension của file gốc
+      const filename = path.basename(file.originalname, ext); // Lấy tên file (không có extension)
+      cb(null, `${filename}-${Date.now()}${ext}`); // Ghép chuỗi đúng định dạng
     },
   });
   return storage;

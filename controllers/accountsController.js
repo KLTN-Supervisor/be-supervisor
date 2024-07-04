@@ -216,7 +216,7 @@ const logout = (req, res) => {
   if (req?.session?.id)
     req.session.destroy((err) => {
       if (err) {
-        return res.status(500).json({ message: "Logout failed" });
+        return res.status(500).json({ message: "Đăng xuất không thành công!" });
       }
       res.clearCookie("ISSsession", {
         httpOnly: true,

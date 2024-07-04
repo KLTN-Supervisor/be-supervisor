@@ -6,6 +6,7 @@ const Student = require("../models/schemas/student");
 const Report = require("../models/schemas/report");
 const Subject = require("../models/schemas/subject");
 const fs = require("fs");
+const path = require("path");
 
 const { validationResult } = require("express-validator");
 
@@ -321,7 +322,7 @@ const updateReport = async (req, res, next) => {
     // Get existing report from the database
     const report = await Report.findById(reportId);
     if (!report) {
-      const error = HttpError("Không tìm thấy biên bản cần cập nhật!", 404);
+      const error = new HttpError("Không tìm thấy biên bản cần cập nhật!", 404);
       return next(error);
     }
 
@@ -332,6 +333,8 @@ const updateReport = async (req, res, next) => {
       for (let i = 0; i < removed_images.length; i++) {
         const imagePath = removed_images[i];
         const fullPath = path.join("public", "uploads", imagePath);
+
+        //console.log("Đường dẫn: ", fullPath);
         if (fs.existsSync(fullPath)) {
           fs.unlinkSync(fullPath); // Delete the file from the system
         }
@@ -357,10 +360,10 @@ const updateReport = async (req, res, next) => {
 
     await report.save();
 
-    res.json(true);
+    res.json({ report: report });
   } catch (err) {
     console.log("Cập nhật report: ", err);
-    const error = HttpError("Có lỗi khi cập nhật!", 500);
+    const error = new HttpError("Có lỗi khi cập nhật!", 500);
     return next(error);
   }
 };
