@@ -5,6 +5,7 @@ const Building = require("../models/schemas/building");
 const Student = require("../models/schemas/student");
 const Report = require("../models/schemas/report");
 const Subject = require("../models/schemas/subject");
+const fs = require("fs");
 
 const { validationResult } = require("express-validator");
 
@@ -313,29 +314,54 @@ const noteReport = async (req, res, next) => {
 
 const updateReport = async (req, res, next) => {
   try {
-    const date = req.query.date || "00/00/0000";
-    const room = req.query.room;
     const { reportType, note, reportId } = req.body;
+    const removed_images = JSON.parse(req.body.removed_images);
     const images = req.files;
 
-    const imagesPath = images.map((image, i) =>
+    // Get existing report from the database
+    const report = await Report.findById(reportId);
+    if (!report) {
+      const error = HttpError("Không tìm thấy biên bản cần cập nhật!", 404);
+      return next(error);
+    }
+
+    let updatedImages = report.images || [];
+
+    // Remove specified images
+    if (removed_images && Array.isArray(removed_images)) {
+      for (let i = 0; i < removed_images.length; i++) {
+        const imagePath = removed_images[i];
+        const fullPath = path.join("public", "uploads", imagePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath); // Delete the file from the system
+        }
+      }
+
+      // Remove image paths from the updatedImages array
+      updatedImages = updatedImages.filter(
+        (img) => !removed_images.includes(img)
+      );
+    }
+
+    // Add new images
+    const newImagesPath = images.map((image) =>
       image.path.replace("public\\uploads\\", "")
     );
 
-    const update = {
-      $set: {
-        report_type: reportType,
-        note: note,
-        time: examSchedule._id,
-        images: imagesPath,
-      },
-    };
+    updatedImages = updatedImages.concat(newImagesPath);
 
-    await Report.updateOne({ _id: reportId }, update);
+    // Update the report document
+    report.report_type = reportType.toUpperCase();
+    report.note = note;
+    report.images = updatedImages;
+
+    await report.save();
 
     res.json(true);
   } catch (err) {
-    return next(err);
+    console.log("Cập nhật report: ", err);
+    const error = HttpError("Có lỗi khi cập nhật!", 500);
+    return next(error);
   }
 };
 
