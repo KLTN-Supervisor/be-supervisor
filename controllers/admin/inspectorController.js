@@ -274,6 +274,32 @@ const createInspector = async (req, res, next) => {
 
     const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
 
+    // Check for existing inspector_id, CID or email
+    const existingInspector = await Inspector.findOne({
+      $or: [
+        { inspector_id: formData.inspector_id },
+        {
+          citizen_identification_number: formData.citizen_identification_number,
+        },
+        { email: formData.email },
+      ],
+    });
+
+    if (existingInspector) {
+      if (existingInspector.inspector_id === formData.inspector_id) {
+        return next(new HttpError("Mã thanh tra đã tồn tại!", 409));
+      }
+      if (
+        existingInspector.citizen_identification_number ===
+        formData.citizen_identification_number
+      ) {
+        return next(new HttpError("Số CCCD/CMND đã tồn tại!", 409));
+      }
+      if (existingInspector.email === formData.email) {
+        return next(new HttpError("Email đã tồn tại!", 409));
+      }
+    }
+
     // Tạo địa chỉ thường trú từ các trường city_or_province, district và address
     const permanent_address = {
       city_or_province: formData.city_or_province,
@@ -293,6 +319,7 @@ const createInspector = async (req, res, next) => {
       date_of_birth: new Date(formData.date_of_birth),
       place_of_birth: formData.place_of_birth,
       gender: formData.gender,
+      email: formData.email.trim(),
       nationality: formData.nationality,
       permanent_address: permanent_address,
       current_address: formData.current_address,
@@ -357,6 +384,34 @@ const updateInspector = async (req, res, next) => {
   } catch (err) {
     const error = new HttpError("Lỗi khi tìm thanh tra!", 500);
     return next(error);
+  }
+
+  // Check for existing inspector_id, CID or email
+  const existingInspector = await Inspector.findOne({
+    $or: [
+      { inspector_id: updateFields.inspector_id },
+      {
+        citizen_identification_number:
+          updateFields.citizen_identification_number,
+      },
+      { email: updateFields.email },
+    ],
+    _id: { $ne: id }, // Exclude the current inspector from the check
+  });
+
+  if (existingInspector) {
+    if (existingInspector.inspector_id === updateFields.inspector_id) {
+      return next(new HttpError("Mã thanh tra đã tồn tại!", 409));
+    }
+    if (
+      existingInspector.citizen_identification_number ===
+      updateFields.citizen_identification_number
+    ) {
+      return next(new HttpError("Số căn cước công dân đã tồn tại!", 409));
+    }
+    if (existingInspector.email === updateFields.email) {
+      return next(new HttpError("Email đã tồn tại!", 409));
+    }
   }
 
   // Kiểm tra và lọc các trường hợp lệ

@@ -128,58 +128,41 @@ const organizeFilesById = async (targetPath) => {
       if (stats.isFile()) {
         const [id, name] = file.split("_");
 
+        const newDirPath = path.join(targetPath, id);
+        if (!fs.existsSync(newDirPath)) {
+          await fs.promises.mkdir(newDirPath);
+        }
+
+        const newFilePath = path.join(newDirPath, file);
+        await fs.promises.rename(filePath, newFilePath);
+
         if (name === "avatar") {
-          const newDirPath = path.join(
-            "public",
-            "uploads",
-            "portrait-images",
-            "student-images"
-          );
-          if (!fs.existsSync(newDirPath)) {
-            await fs.promises.mkdir(newDirPath, { recursive: true });
-          }
-
-          const newFilePath = path.join(newDirPath, file);
-          await fs.promises.rename(filePath, newFilePath);
-
           const updatedAvatar = {
             portrait_img: newFilePath.replace("public\\uploads\\", ""),
           };
 
-          // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
           const currentStudent = await Student.findOne({ student_id: id });
           if (!currentStudent) {
-            const error = new HttpError(
-              "Không tìm thấy sinh viên cần cập nhật!",
-              404
-            );
-            return next(error);
+            throw new HttpError("Không tìm thấy sinh viên cần cập nhật!", 404);
           }
 
-          const student = await updateStudentFields(
-            currentStudent,
-            updatedAvatar
-          );
-        } else {
-          const newDirPath = path.join(targetPath, id);
-          if (!fs.existsSync(newDirPath)) {
-            await fs.promises.mkdir(newDirPath);
-          }
-
-          const newFilePath = path.join(newDirPath, file);
-          await fs.promises.rename(filePath, newFilePath);
+          await updateStudentFields(currentStudent, updatedAvatar);
 
           labelSet.add(id);
         }
       }
     }
 
-    const labels = Array.from(labelSet);
+    const newLabels = Array.from(labelSet);
     const existingTrain = await Train.findOne({});
     if (!existingTrain) {
-      await new Train({ label: labels }).save();
+      await new Train({ label: newLabels }).save();
     } else {
-      existingTrain.label = labels;
+      // Merge new labels with existing labels, avoiding duplicates
+      const updatedLabels = Array.from(
+        new Set([...existingTrain.label, ...newLabels])
+      );
+      existingTrain.label = updatedLabels;
       await existingTrain.save();
     }
   } catch (err) {
@@ -291,6 +274,28 @@ const createStudent = async (req, res, next) => {
   try {
     const formData = req.body;
     const image = req.file;
+
+    // Check for existing student_id or CID
+    const existingStudent = await Student.findOne({
+      $or: [
+        { student_id: formData.student_id },
+        {
+          citizen_identification_number: formData.citizen_identification_number,
+        },
+      ],
+    });
+
+    if (existingStudent) {
+      if (existingStudent.student_id === formData.student_id) {
+        return next(new HttpError("MSSV đã tồn tại!", 409));
+      }
+      if (
+        existingStudent.citizen_identification_number ===
+        formData.citizen_identification_number
+      ) {
+        return next(new HttpError("Số CCCD/CMND đã tồn tại!", 409));
+      }
+    }
 
     // Combine first_name, middle_name, last_name into full_name
     const fullName = `${formData.last_name} ${formData.middle_name} ${formData.first_name}`;
@@ -406,6 +411,30 @@ const updateStudent = async (req, res, next) => {
   const id = req.params.id;
   const updateFields = req.body; // Chứa các trường cần cập nhật
   const image = req.file;
+
+  // Check for existing student_id or CID
+  const existingStudent = await Student.findOne({
+    $or: [
+      { student_id: updateFields.student_id },
+      {
+        citizen_identification_number:
+          updateFields.citizen_identification_number,
+      },
+    ],
+    _id: { $ne: id }, // Exclude the current student from the check
+  });
+
+  if (existingStudent) {
+    if (existingStudent.student_id === updateFields.student_id) {
+      return next(new HttpError("MSSV đã tồn tại!", 409));
+    }
+    if (
+      existingStudent.citizen_identification_number ===
+      updateFields.citizen_identification_number
+    ) {
+      return next(new HttpError("Số CCCD/CMND đã tồn tại!", 409));
+    }
+  }
 
   // Combine first_name, middle_name, last_name into full_name
   const fullName = `${updateFields.last_name} ${updateFields.middle_name} ${updateFields.first_name}`;

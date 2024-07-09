@@ -7,6 +7,7 @@ const removeVietnameseTones = require("../../utils/removeVietnameseTones");
 const { getValidFields } = require("../../utils/validators");
 const { transformObjectFields } = require("../../utils/objectFunctions");
 const sendMail = require("../../utils/email");
+const fs = require("fs");
 
 const createAccount = async (req, res, next) => {
   const errors = validationResult(req);
@@ -53,17 +54,41 @@ const createAccount = async (req, res, next) => {
   }
 };
 
-const updateStudentFields = async (id, updateFields) => {
+const updateStudentFields = async (currentStudent, updateFields) => {
   try {
     // Sử dụng findOneAndUpdate để cập nhật nhiều trường
     const student = await Account.findOneAndUpdate(
-      { _id: id },
+      { _id: currentStudent._id },
       { $set: updateFields },
       { new: true }
     );
 
     if (!student) {
-      throw new HttpError("Không tìm thấy user cần cập nhật!", 404);
+      throw new HttpError("Không tìm thấy tài khoản cần cập nhật!", 404);
+    }
+
+    // Xóa file ảnh cũ nếu có và cập nhật thành công
+    if (currentStudent && currentStudent.avatar && updateFields.avatar) {
+      const oldImagePath = path.join(
+        __dirname,
+        "public",
+        "uploads",
+        currentStudent.avatar
+      );
+
+      fs.access(oldImagePath, fs.constants.F_OK, (err) => {
+        if (!err) {
+          fs.unlink(oldImagePath, (err) => {
+            if (err) {
+              console.error("Không thể xóa ảnh cũ:", err);
+            } else {
+              console.log("Đã xóa ảnh cũ:", oldImagePath);
+            }
+          });
+        } else {
+          console.log("File ảnh cũ không tồn tại:", oldImagePath);
+        }
+      });
     }
 
     return student;
@@ -81,9 +106,40 @@ const updateAccount = async (req, res, next) => {
   const updateFields = req.body; // Chứa các trường cần cập nhật
   const image = req.file;
 
+  // Check for existing username or email
+  const existingAccount = await Account.findOne({
+    $or: [{ username: updateFields.username }, { email: updateFields.email }],
+    _id: { $ne: id }, // Exclude the current account from the check
+  });
+
+  if (existingAccount) {
+    if (existingAccount.username === updateFields.username) {
+      return next(new HttpError("Tên tài khoản đã tồn tại!", 409));
+    }
+    if (existingAccount.email === updateFields.email) {
+      return next(new HttpError("Email đã tồn tại!", 409));
+    }
+  }
+
   if (image) updateFields.avatar = image.path.replace("public\\uploads\\", "");
 
   updateFields.search_keywords = removeVietnameseTones(updateFields.full_name);
+
+  // Lấy thông tin tài khoản hiện tại để kiểm tra và xóa file ảnh cũ
+  let currentStudent;
+  try {
+    currentStudent = await Account.findById(id);
+    if (!currentStudent) {
+      const error = new HttpError(
+        "Không tìm thấy tài khoản cần cập nhật!",
+        404
+      );
+      return next(error);
+    }
+  } catch (err) {
+    const error = new HttpError("Lỗi khi tìm tài khoản!", 500);
+    return next(error);
+  }
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -119,7 +175,10 @@ const updateAccount = async (req, res, next) => {
       transformedFields.inspector = inspector;
     }
 
-    const student = await updateStudentFields(id, transformedFields);
+    const student = await updateStudentFields(
+      currentStudent,
+      transformedFields
+    );
     res.json({ account: student });
   } catch (err) {
     console.log("update student: ", err);
