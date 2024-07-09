@@ -14,7 +14,7 @@ const createAccount = async (req, res, next) => {
   if (!errors.isEmpty()) {
     return next(new HttpError("Dữ liệu nhập không hợp lệ!", 422));
   }
-  const { fullname, username, password, email, role, inspectorID } = req.body;
+  const { full_name, username, password, email, role, inspectorID } = req.body;
   const image = req.file;
 
   try {
@@ -34,11 +34,11 @@ const createAccount = async (req, res, next) => {
     const newAccount = new Account({
       username: username,
       password: password,
-      full_name: fullname,
+      full_name: full_name,
       inspector: inspector,
       email: email,
       avatar: image ? image.path.replace("public\\uploads\\", "") : "",
-      search_keywords: `${removeVietnameseTones(fullname)}`,
+      search_keywords: `${removeVietnameseTones(full_name)}`,
       role: role,
     });
 

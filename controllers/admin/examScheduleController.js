@@ -383,7 +383,7 @@ const readFileDataFromExcel = async (path) => {
     const termYearRegex = /Học Kỳ (\d+) - Năm Học (\d{4}-\d{4})/;
     const termYearMatch = data.find((i) => termYearRegex.test(i?.["A"]));
 
-    console.log(data);
+    //console.log(data);
 
     if (!termYearMatch) {
       throw new Error(

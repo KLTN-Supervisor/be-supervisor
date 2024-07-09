@@ -25,7 +25,7 @@ const studentSchema = new Schema(
     first_name: { type: String, required: true, minLength: 1, maxLength: 10 },
     middle_name: { type: String, required: true, minLength: 2 },
     last_name: { type: String, required: true, minLength: 2, maxLength: 12 },
-    search_keywords: { type: String, required: true },
+    search_keywords: { type: String },
     date_of_birth: { type: Date, required: true },
     place_of_birth: { type: String, required: true },
     gender: { type: Boolean },
