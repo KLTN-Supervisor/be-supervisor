@@ -1,5 +1,6 @@
 const HttpError = require("../../models/application/httpError");
 const Account = require("../../models/schemas/account");
+const Inspector = require("../../models/schemas/inspector");
 const { validationResult } = require("express-validator");
 const csv = require("csvtojson");
 const removeVietnameseTones = require("../../utils/removeVietnameseTones");
@@ -12,7 +13,7 @@ const createAccount = async (req, res, next) => {
   if (!errors.isEmpty()) {
     return next(new HttpError("Dữ liệu nhập không hợp lệ!", 422));
   }
-  const { fullname, username, password, email, role } = req.body;
+  const { fullname, username, password, email, role, inspectorID } = req.body;
   const image = req.file;
 
   try {
@@ -25,10 +26,15 @@ const createAccount = async (req, res, next) => {
       return next(error);
     }
 
+    const inspector = await Inspector.findOne({
+      inspector_id: inspectorID,
+    });
+
     const newAccount = new Account({
       username: username,
       password: password,
       full_name: fullname,
+      inspector: inspector,
       email: email,
       avatar: image ? image.path.replace("public\\uploads\\", "") : "",
       search_keywords: `${removeVietnameseTones(fullname)}`,
@@ -77,7 +83,7 @@ const updateAccount = async (req, res, next) => {
 
   if (image) updateFields.avatar = image.path.replace("public\\uploads\\", "");
 
-  updateFields.search_keywords = removeVietnameseTones(updateFields.fullname);
+  updateFields.search_keywords = removeVietnameseTones(updateFields.full_name);
 
   // Kiểm tra và lọc các trường hợp lệ
   // const validFields = [
@@ -92,6 +98,7 @@ const updateAccount = async (req, res, next) => {
   //   "self_lock",
   //   "search_keyword",
   // ];
+
   //Lọc và chỉ giữ lại các trường hợp lệ
   const validUpdateFields = getValidFields(updateFields, []);
 
@@ -100,8 +107,18 @@ const updateAccount = async (req, res, next) => {
     return next(error);
   }
   const transformedFields = transformObjectFields(validUpdateFields);
-
   try {
+    if (
+      transformedFields?.inspectorID &&
+      transformedFields?.inspectorID !== ""
+    ) {
+      const inspector = await Inspector.findOne({
+        inspector_id: transformedFields.inspectorID,
+      });
+
+      transformedFields.inspector = inspector;
+    }
+
     const student = await updateStudentFields(id, transformedFields);
     res.json({ account: student });
   } catch (err) {
@@ -199,6 +216,20 @@ const getAccountsPaginated = async (req, res, next) => {
       { $sort: { username: 1 } },
       { $skip: skip },
       { $limit: limit },
+      {
+        $lookup: {
+          from: "inspectors", // collection name in MongoDB
+          localField: "inspector",
+          foreignField: "_id",
+          as: "inspector",
+        },
+      },
+      {
+        $unwind: {
+          path: "$inspector",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
     ]);
 
     const totalAccounts = await Account.countDocuments(query);

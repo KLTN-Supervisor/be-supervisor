@@ -5,15 +5,6 @@ const HttpError = require("../application/httpError");
 
 const { Schema, Types } = mongoose;
 
-const userSettingSchema = new Schema(
-  {
-    notification_setting: { type: String },
-    privacy_setting: { type: String },
-    theme: { type: String },
-  },
-  { _id: false }
-);
-
 const accountSchema = new Schema(
   {
     username: {

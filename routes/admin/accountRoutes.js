@@ -21,7 +21,7 @@ router.post(
   [
     createLengthValidator("username", 5, 15),
     createLengthValidator("password", 5, 20),
-    createSpecialCharValidator("fullname"),
+    createSpecialCharValidator("full_name"),
     createEnumValidator("role", ["USER", "ADMIN", "ACADEMIC_AFFAIRS_OFFICE"]),
   ],
   AccountController.createAccount
@@ -30,8 +30,7 @@ router.put(
   "/:id",
   uploadToFolderPath("user-avatars").single("avatar"),
   [
-    createLengthValidator("username", 5, 15),
-    createSpecialCharValidator("fullname"),
+    createSpecialCharValidator("full_name"),
     createEnumValidator("role", ["USER", "ADMIN", "ACADEMIC_AFFAIRS_OFFICE"]),
   ],
   AccountController.updateAccount

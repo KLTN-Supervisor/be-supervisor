@@ -154,6 +154,8 @@ const login = async (req, res, next) => {
       "8h"
     );
 
+    existingUser.last_online = new Date();
+    existingUser.save();
     req.session.access_token = accessToken;
 
     req.session.save(function (err) {
