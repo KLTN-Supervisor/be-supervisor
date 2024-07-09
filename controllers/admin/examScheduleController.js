@@ -383,6 +383,8 @@ const readFileDataFromExcel = async (path) => {
     const termYearRegex = /Học Kỳ (\d+) - Năm Học (\d{4}-\d{4})/;
     const termYearMatch = data.find((i) => termYearRegex.test(i?.["A"]));
 
+    console.log(data);
+
     if (!termYearMatch) {
       throw new Error(
         "Không tìm thấy thông tin học kỳ và năm học trong file excel!"
@@ -391,10 +393,6 @@ const readFileDataFromExcel = async (path) => {
 
     const [_, term, year] = termYearMatch?.["A"].match(termYearRegex);
     const [fromYear, toYear] = year.split("-").map(Number);
-
-    console.log(
-      `Hoc ky: ${term}, nam hoc: ${year}, from-to: ${fromYear}, ${toYear}`
-    );
 
     for (let item of data) {
       if (item?.["C"] === "Ngày Thi :") {

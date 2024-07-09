@@ -10,9 +10,9 @@ const Train = require("../models/schemas/train");
 const sendMail = require("../utils/email");
 
 const trainingFunc = async (studentUrl) => {
-  // console.log("Training: ", studentUrl);
   faceapi.env.monkeyPatch({ Canvas, Image });
   const img = await canvas.loadImage(studentUrl);
+  console.log("done training: ", studentUrl);
 
   const detection = await faceapi
     .detectSingleFace(img)
@@ -22,7 +22,7 @@ const trainingFunc = async (studentUrl) => {
 };
 
 const trainStudent = async (studentLabel) => {
-  // console.log("Training student:", studentLabel);
+  console.log("Training student:", studentLabel);
   const listImgPromise = [];
   const listStudentsFolders = fs.readdirSync(
     `${directoryPath}/${studentLabel}`
@@ -48,18 +48,20 @@ async function saveFile(filename, descriptors) {
     // Read the existing data from the file
     let existingData = [];
     try {
-      const existingDataString = await fs.promises.readFile(filename, 'utf8');
+      const existingDataString = await fs.promises.readFile(filename, "utf8");
       existingData = JSON.parse(existingDataString);
     } catch (error) {
       // If the file doesn't exist yet, existingData will be an empty array
-      if (error.code !== 'ENOENT') {
+      if (error.code !== "ENOENT") {
         throw error;
       }
     }
 
-    for(const descriptor of JSON.parse(descriptors)){
+    for (const descriptor of JSON.parse(descriptors)) {
       // Check if the label already exists in the existing data
-      const existingItemIndex = existingData.findIndex(item => item.label === descriptor.label);
+      const existingItemIndex = existingData.findIndex(
+        (item) => item.label === descriptor.label
+      );
       if (existingItemIndex !== -1) {
         existingData[existingItemIndex].descriptors = descriptor.descriptors;
       } else {
@@ -74,7 +76,6 @@ async function saveFile(filename, descriptors) {
     console.error("Error saving face descriptors:", error);
   }
 }
-
 
 const trainingData = async (req, res, next) => {
   try {
@@ -95,15 +96,15 @@ const trainingData = async (req, res, next) => {
         const filePath = path.join(directoryPath, file);
         return fs.statSync(filePath).isDirectory();
       });
-      
+
       const array = await Train.findOne({}, {}, { sort: { created_at: -1 } })
-      .then((latestTrain) => {
-        return latestTrain.label;
-      })
-      .catch((error) => {
-        console.error(error);
-        return null;
-      });
+        .then((latestTrain) => {
+          return latestTrain.label;
+        })
+        .catch((error) => {
+          console.error(error);
+          return null;
+        });
 
       const descriptorPromises = folders.map(async (folder) => {
         trainedStudents.push(folder.toString());
@@ -114,20 +115,23 @@ const trainingData = async (req, res, next) => {
         }
       });
 
-      if(trainedStudents){
+      if (trainedStudents) {
         await Student.find({
           student_id: { $nin: trainedStudents }, // Find students whose email is not in the trainedStudents array
-          learning_status: 'LEARNING', // Filter for students with 'LEARNING' status
+          learning_status: "LEARNING", // Filter for students with 'LEARNING' status
         })
-        .select('email') // Only select the email field
-        .then(students => {
-          for(const student of students){
-            const message = `Sinh viên gửi hình cho phòng đào tạo \n Nếu đã gửi hãy bỏ qua tin nhắn này`;
-            const subject = `Cảnh báo thiếu hình trên hệ thống`;
-            sendMail ({ mailto: student.email, subject: subject, emailMessage: message });
-          }
-
-        })
+          .select("email") // Only select the email field
+          .then((students) => {
+            for (const student of students) {
+              const message = `Sinh viên gửi hình cho phòng đào tạo \n Nếu đã gửi hãy bỏ qua tin nhắn này`;
+              const subject = `Cảnh báo thiếu hình trên hệ thống`;
+              sendMail({
+                mailto: student.email,
+                subject: subject,
+                emailMessage: message,
+              });
+            }
+          });
       }
 
       const descriptors = await Promise.all(descriptorPromises);
@@ -137,7 +141,7 @@ const trainingData = async (req, res, next) => {
         "labeledFacesData.json",
         JSON.stringify(validDescriptors.map((x) => x.toJSON()))
       );
-        
+
       return validDescriptors;
     });
 

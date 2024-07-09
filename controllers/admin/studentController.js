@@ -162,10 +162,10 @@ const organizeFilesById = async (targetPath) => {
       await new Train({ label: newLabels }).save();
     } else {
       // Merge new labels with existing labels, avoiding duplicates
-      const updatedLabels = Array.from(
-        new Set([...existingTrain.label, ...newLabels])
-      );
-      existingTrain.label = updatedLabels;
+      // const updatedLabels = Array.from(
+      //   new Set([...existingTrain.label, ...newLabels])
+      // );
+      existingTrain.label = newLabels;
       await existingTrain.save();
     }
   } catch (err) {
