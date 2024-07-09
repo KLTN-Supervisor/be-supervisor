@@ -136,7 +136,7 @@ const organizeFilesById = async (targetPath) => {
         const newFilePath = path.join(newDirPath, file);
         await fs.promises.rename(filePath, newFilePath);
 
-        if (name === "avatar") {
+        if (name.startsWith("avatar")) {
           const updatedAvatar = {
             portrait_img: newFilePath.replace("public\\uploads\\", ""),
           };
@@ -146,7 +146,10 @@ const organizeFilesById = async (targetPath) => {
             throw new HttpError("Không tìm thấy sinh viên cần cập nhật!", 404);
           }
 
-          await updateStudentFields(currentStudent, updatedAvatar);
+          const updatedStudent = await updateStudentFields(
+            currentStudent,
+            updatedAvatar
+          );
 
           labelSet.add(id);
         }
