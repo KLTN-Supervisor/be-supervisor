@@ -267,7 +267,7 @@ const importExamSchedulesFromExcel = async (req, res, next) => {
     let allExams = [];
 
     for (const file of files) {
-      const result = await readFileDataFromExcel(file.file_path);
+      const result = await readFileDataFromExcel2(file.file_path);
       allExams = allExams.concat(result);
       file.has_used = true;
       await file.save();
@@ -426,6 +426,110 @@ const readFileDataFromExcel = async (path) => {
         const room = await Room.findOne({ room_name: room_name });
         const subject = await Subject.findOne({
           subject_id: data.find((i) => i?.["C"] === "Mã Môn Học:")?.["E"],
+        });
+
+        currentExam = {
+          room: room._id,
+          start_time: start_time,
+          term: term,
+          year: {
+            from: fromYear,
+            to: toYear,
+          },
+          subject: subject._id,
+          students: [],
+        };
+      } else if (item?.["B"] && typeof item["B"] === "number") {
+        currentExam.students.push(item?.["D"]);
+      }
+    }
+
+    if (currentExam !== null) {
+      const students = await Student.find({
+        student_id: { $in: currentExam.students },
+      });
+
+      const examStudents = students.map((student, i) => {
+        return { student: student._id };
+      });
+
+      currentExam.students = examStudents;
+      result.push(currentExam);
+    }
+    return result;
+  } catch (err) {
+    throw err;
+  }
+};
+
+const readFileDataFromExcel2 = async (path) => {
+  try {
+    const studentIds = new Set();
+    const inspectorIds = new Set();
+    const roomIds = new Set();
+    const workbook = xlsx.readFile(path);
+    const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet1, { header: "A" });
+
+    let result = [];
+    let currentExam = null;
+
+    const termYearRegex = /học kỳ (\d+) - năm học (\d{4}-\d{4})/i;
+    const termYearMatch = data.find((i) =>
+      termYearRegex.test(i?.["A"]?.toLowerCase())
+    );
+
+    if (!termYearMatch) {
+      throw new Error(
+        "Không tìm thấy thông tin học kỳ và năm học trong file excel!"
+      );
+    }
+
+    const [_, term, year] = termYearMatch?.["A"]
+      .toLowerCase()
+      .match(termYearRegex);
+    const [fromYear, toYear] = year.split("-").map(Number);
+
+    for (let item of data) {
+      if (item?.["C"]?.toLowerCase() === "ngày thi :") {
+        if (currentExam !== null) {
+          const students = await Student.find({
+            student_id: { $in: currentExam.students },
+          });
+
+          const examStudents = students.map((student, i) => {
+            return { student: student._id };
+          });
+
+          currentExam.students = examStudents;
+
+          result.push(currentExam);
+        }
+
+        const examInfo = item?.["E"]?.toLowerCase();
+        const [timeInfo, room_name] = examInfo.split(" - phòng thi: ");
+
+        const [datePart, timePart] = timeInfo.split(" - giờ thi: ");
+        const dateParts = datePart.trim().split("/");
+        const timeParts = timePart
+          .trim()
+          .split(" -   phút - ")[0]
+          .trim()
+          .split(/g|:/); // Split by either "g" or ":"
+
+        const start_time = new Date(
+          dateParts[2],
+          dateParts[1] - 1,
+          dateParts[0],
+          timeParts[0],
+          timeParts[1]
+        );
+
+        const room = await Room.findOne({ room_name: room_name.trim() });
+        const subject = await Subject.findOne({
+          subject_id: data.find(
+            (i) => i?.["C"]?.toLowerCase() === "mã môn học:"
+          )?.["E"],
         });
 
         currentExam = {
