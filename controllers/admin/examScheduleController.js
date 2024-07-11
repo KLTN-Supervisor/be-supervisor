@@ -507,6 +507,7 @@ const readFileDataFromExcel2 = async (path) => {
         }
 
         const examInfo = item?.["E"]?.toLowerCase();
+        console.log(examInfo);
         const [timeInfo, room_name] = examInfo.split(" - phòng thi: ");
 
         const [datePart, timePart] = timeInfo.split(" - giờ thi: ");
@@ -525,7 +526,9 @@ const readFileDataFromExcel2 = async (path) => {
           timeParts[1]
         );
 
-        const room = await Room.findOne({ room_name: room_name.trim() });
+        const room = await Room.findOne({
+          room_name: room_name.toUpperCase().trim(),
+        });
         const subject = await Subject.findOne({
           subject_id: data.find(
             (i) => i?.["C"]?.toLowerCase() === "mã môn học:"

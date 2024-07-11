@@ -8,6 +8,7 @@ const { getValidFields } = require("../../utils/validators");
 const { transformObjectFields } = require("../../utils/objectFunctions");
 const sendMail = require("../../utils/email");
 const fs = require("fs");
+const path = require("path");
 
 const createAccount = async (req, res, next) => {
   const errors = validationResult(req);
@@ -90,6 +91,11 @@ const updateStudentFields = async (currentStudent, updateFields) => {
         }
       });
     }
+
+    await student.populate(
+      "inspector",
+      "inspector_id first_name middle_name last_name"
+    );
 
     return student;
   } catch (err) {
