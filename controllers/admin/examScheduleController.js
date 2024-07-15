@@ -491,7 +491,12 @@ const readFileDataFromExcel2 = async (path) => {
     const [fromYear, toYear] = year.split("-").map(Number);
 
     for (let item of data) {
-      if (item?.["C"]?.toLowerCase() === "ngày thi :") {
+      console.log(item);
+      if (
+        item?.["C"] &&
+        typeof item["C"] === "string" &&
+        item["C"]?.toLowerCase() === "ngày thi :"
+      ) {
         if (currentExam !== null) {
           const students = await Student.find({
             student_id: { $in: currentExam.students },
@@ -507,7 +512,6 @@ const readFileDataFromExcel2 = async (path) => {
         }
 
         const examInfo = item?.["E"]?.toLowerCase();
-        console.log(examInfo);
         const [timeInfo, room_name] = examInfo.split(" - phòng thi: ");
 
         const [datePart, timePart] = timeInfo.split(" - giờ thi: ");
