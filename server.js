@@ -62,7 +62,7 @@ app.use(
 
 app.use((req, res, next) => {
   // Add the Cross-Origin-Resource-Policy header
-  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   next();
 });
 
