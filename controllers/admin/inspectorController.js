@@ -27,14 +27,14 @@ const importInpectors = async (req, res, next) => {
     }).fromFile(req.file.path);
 
     if (csvdata.length > 0) {
+      csvdata.forEach((inspector) => {
+        const fullName = `${inspector.last_name} ${inspector.middle_name} ${inspector.first_name}`;
+        inspector.search_keywords = `${fullName} ${removeVietnameseTones(
+          fullName
+        )}`;
+      });
       // Tạo một danh sách các student_id từ dữ liệu CSV
       const inspectorIds = csvdata.map((inspector) => inspector.inspector_id);
-
-      // Combine first_name, middle_name, last_name into full_name
-      const fullName = `${csvdata.last_name} ${csvdata.middle_name} ${csvdata.first_name}`;
-      const searchKeywords = `${fullName} ${removeVietnameseTones(fullName)}`;
-
-      csvdata.search_keywords = searchKeywords;
 
       // Tìm các student_id trùng lặp
       const duplicateInspectorIds = await Inspector.find({
