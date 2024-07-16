@@ -32,6 +32,11 @@ const createAccount = async (req, res, next) => {
       inspector_id: inspectorID,
     });
 
+    if (image) {
+      image.path.replace("public\\uploads\\", "");
+      image.path.replace("public/uploads/", "");
+    }
+
     const newAccount = new Account({
       username: username,
       password: password,

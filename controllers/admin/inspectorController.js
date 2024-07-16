@@ -309,11 +309,16 @@ const createInspector = async (req, res, next) => {
       address: formData.address,
     };
 
+    if (image) {
+      image.path.replace("public\\uploads\\", "");
+      image.path.replace("public/uploads/", "");
+    }
+
     // Tạo đối tượng sinh viên mới
     const newInspector = new Inspector({
       inspector_id: formData.inspector_id,
       citizen_identification_number: formData.citizen_identification_number,
-      portrait_img: image ? image.path.replace("public\\uploads\\", "") : "",
+      portrait_img: image ? image.path : "",
       first_name: formData.first_name,
       middle_name: formData.middle_name,
       last_name: formData.last_name,
@@ -369,8 +374,10 @@ const updateInspector = async (req, res, next) => {
     search_keywords: searchKeywords,
   };
 
-  if (image)
+  if (image) {
     fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
+    fieldsToUpdate.portrait_img = image.path.replace("public/uploads/", "");
+  }
 
   // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ
   let currentInspector;
