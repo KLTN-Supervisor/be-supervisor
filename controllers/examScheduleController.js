@@ -101,7 +101,7 @@ const getExamTimeByBuilding = async (req, res, next) => {
     const rooms = await Room.find({ building: building_id });
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
-    const date = new Date(year, month - 1, day + 1); // Tạo đối tượng Date từ ngày, tháng và năm
+    const date = new Date(year, month - 1, day); // Tạo đối tượng Date từ ngày, tháng và năm
 
     const examSchedules = await ExamSchedule.find({
       $expr: {
