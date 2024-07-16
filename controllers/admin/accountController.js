@@ -127,7 +127,10 @@ const updateAccount = async (req, res, next) => {
     }
   }
 
-  if (image) updateFields.avatar = image.path.replace("public\\uploads\\", "");
+  if (image) {
+    updateFields.avatar = image.path.replace("public\\uploads\\", "");
+    updateFields.avatar = image.path.replace("public/uploads/", "");
+  }
 
   updateFields.search_keywords = removeVietnameseTones(updateFields.full_name);
 
