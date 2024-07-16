@@ -143,11 +143,11 @@ async function saveFile(filename, descriptors, res) {
       }
       else{
         console.log("pass");
-        await res.json(descriptors)
+        await res.json(true);
       }
       // Sau khi tất cả email đã được gửi, tiến hành lưu file
       await fs.promises.writeFile(filename, JSON.stringify(existingData));
-      // await res.json(descriptors)
+
     }).catch((error) => {
       console.error(error);
     });
@@ -211,9 +211,6 @@ const trainingData = async (req, res, next) => {
     )
     
     console.log(userError);
-    // res.json(faceDescriptors);
-    // console.log(userError);
-      
   } catch (error) {
     console.log(error);
     return next(error);
