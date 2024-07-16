@@ -139,7 +139,7 @@ const organizeFilesById = async (targetPath) => {
 
         if (name.startsWith("avatar")) {
           const updatedAvatar = {
-            portrait_img: newFilePath.replace("public\\uploads\\", ""),
+            portrait_img: newFilePath.replace(/public[\/\\]uploads[\/\\]/, ""),
           };
 
           const currentStudent = await Student.findOne({ student_id: id });
