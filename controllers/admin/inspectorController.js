@@ -26,6 +26,8 @@ const importInpectors = async (req, res, next) => {
       },
     }).fromFile(req.file.path);
 
+    //console.log("data: ", csvdata);
+
     if (csvdata.length > 0) {
       csvdata.forEach((inspector) => {
         const fullName = `${inspector.last_name} ${inspector.middle_name} ${inspector.first_name}`;
