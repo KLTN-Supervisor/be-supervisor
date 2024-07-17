@@ -350,6 +350,8 @@ const createStudent = async (req, res, next) => {
       education_program: formData.education_program,
       class: formData.class,
       current_address: formData.current_address,
+      major: formData.major,
+      faculty: formData.faculty,
     });
 
     // Lưu đối tượng sinh viên mới vào cơ sở dữ liệu
