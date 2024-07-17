@@ -329,8 +329,7 @@ const createStudent = async (req, res, next) => {
     };
 
     if (image) {
-      image.path.replace("public\\uploads\\", "");
-      image.path.replace("public/uploads/", "");
+      image.path.replace(/public[\/\\]uploads[\/\\]/, "");
     }
 
     // Tạo đối tượng sinh viên mới
@@ -485,8 +484,10 @@ const updateStudent = async (req, res, next) => {
   };
 
   if (image) {
-    fieldsToUpdate.portrait_img = image.path.replace("public\\uploads\\", "");
-    fieldsToUpdate.portrait_img = image.path.replace("public/uploads/", "");
+    fieldsToUpdate.portrait_img = image.path.replace(
+      /public[\/\\]uploads[\/\\]/,
+      ""
+    );
   }
 
   // Lấy thông tin sinh viên hiện tại để kiểm tra và xóa file ảnh cũ

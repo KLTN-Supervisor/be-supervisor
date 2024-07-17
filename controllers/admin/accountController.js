@@ -33,18 +33,13 @@ const createAccount = async (req, res, next) => {
       inspector_id: inspectorID,
     });
 
-    if (image) {
-      image.path.replace("public\\uploads\\", "");
-      image.path.replace("public/uploads/", "");
-    }
-
     const newAccount = new Account({
       username: username,
       password: password,
       full_name: full_name,
       inspector: inspector,
       email: email,
-      avatar: image ? image.path.replace("public\\uploads\\", "") : "",
+      avatar: image ? image.path.replace(/public[\/\\]uploads[\/\\]/, "") : "",
       search_keywords: `${removeVietnameseTones(full_name)}`,
       role: role,
     });
@@ -134,8 +129,7 @@ const updateAccount = async (req, res, next) => {
   }
 
   if (image) {
-    updateFields.avatar = image.path.replace("public\\uploads\\", "");
-    updateFields.avatar = image.path.replace("public/uploads/", "");
+    updateFields.avatar = image.path.replace(/public[\/\\]uploads[\/\\]/, "");
   }
 
   updateFields.search_keywords = removeVietnameseTones(updateFields.full_name);
