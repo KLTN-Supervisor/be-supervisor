@@ -68,7 +68,9 @@ const getBuildingByDate = async (req, res, next) => {
   try {
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
-    const date = new Date(year, month - 1, day); // Tạo đối tượng Date từ ngày, tháng và năm
+    let dayFilter = day;
+    if (process.env.NODE_ENV !== "production") dayFilter = day + 1;
+    const date = new Date(year, month - 1, dayFilter); // Tạo đối tượng Date từ ngày, tháng và năm
 
     console.log(date);
 
@@ -101,7 +103,9 @@ const getExamTimeByBuilding = async (req, res, next) => {
     const rooms = await Room.find({ building: building_id });
     const dateParam = req.query.date || "00/00/0000";
     const [day, month, year] = dateParam.split("/").map(Number);
-    const date = new Date(year, month - 1, day); // Tạo đối tượng Date từ ngày, tháng và năm
+    let dayFilter = day;
+    if (process.env.NODE_ENV !== "production") dayFilter = day + 1;
+    const date = new Date(year, month - 1, dayFilter); // Tạo đối tượng Date từ ngày, tháng và năm
 
     const examSchedules = await ExamSchedule.find({
       $expr: {

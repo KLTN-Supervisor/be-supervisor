@@ -9,6 +9,7 @@ const { transformObjectFields } = require("../../utils/objectFunctions");
 const sendMail = require("../../utils/email");
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 
 const createAccount = async (req, res, next) => {
   const errors = validationResult(req);
@@ -377,6 +378,28 @@ const unbanAccount = async (req, res, next) => {
   }
 };
 
+const deleteAccounts = async (req, res, next) => {
+  try {
+    const { selectedIds } = req.body;
+
+    // Validate selectedIds
+    if (
+      !Array.isArray(selectedIds) ||
+      !selectedIds.every((id) => mongoose.Types.ObjectId.isValid(id))
+    ) {
+      return next(new HttpError("ID cần xóa không hợp lệ!", 400));
+    }
+
+    const result = await Account.deleteMany({ _id: { $in: selectedIds } });
+
+    res.json({ message: `Xóa tài khoản thành công!` });
+  } catch (err) {
+    console.error("Error deleting accounts:", err);
+    const error = new HttpError("Failed to delete accounts", 500);
+    return next(error);
+  }
+};
+
 module.exports = {
   getAccountsPaginated,
   createAccount,
@@ -384,4 +407,5 @@ module.exports = {
   banAccount,
   unbanAccount,
   resetAccountPassword,
+  deleteAccounts,
 };

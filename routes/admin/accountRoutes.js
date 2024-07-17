@@ -39,5 +39,6 @@ router.put("/ban/:id", AccountController.banAccount);
 router.put("/unban/:id", AccountController.unbanAccount);
 
 router.put("/reset-password/:id", AccountController.resetAccountPassword);
+router.delete("/delete-accounts", AccountController.deleteAccounts);
 
 module.exports = router;

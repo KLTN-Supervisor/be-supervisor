@@ -9,6 +9,7 @@ const unrar = require("node-unrar-js");
 const { transformObjectFields } = require("../../utils/objectFunctions");
 const { getValidFields } = require("../../utils/validators");
 const removeVietnameseTones = require("../../utils/removeVietnameseTones");
+const mongoose = require("mongoose");
 
 const importInpectors = async (req, res, next) => {
   try {
@@ -458,10 +459,33 @@ const updateInspector = async (req, res, next) => {
   }
 };
 
+const deleteInspectors = async (req, res, next) => {
+  try {
+    const { selectedIds } = req.body;
+
+    // Validate selectedIds
+    if (
+      !Array.isArray(selectedIds) ||
+      !selectedIds.every((id) => mongoose.Types.ObjectId.isValid(id))
+    ) {
+      return next(new HttpError("ID cần xóa không hợp lệ!", 400));
+    }
+
+    const result = await Inspector.deleteMany({ _id: { $in: selectedIds } });
+
+    res.json({ message: `Xóa thanh tra thành công!` });
+  } catch (err) {
+    console.error("Error deleting inspectors:", err);
+    const error = new HttpError("Failed to delete inspectors", 500);
+    return next(error);
+  }
+};
+
 module.exports = {
   importInpectors,
   getInspectorsPaginated,
   handleUncompressFile,
   updateInspector,
   createInspector,
+  deleteInspectors,
 };

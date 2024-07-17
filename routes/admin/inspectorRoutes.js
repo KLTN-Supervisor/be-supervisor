@@ -35,5 +35,6 @@ router.post(
   ),
   InspectorController.createInspector
 );
+router.delete("/delete-inspectors", InspectorController.deleteInspectors);
 
 module.exports = router;

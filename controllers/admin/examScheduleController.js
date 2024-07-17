@@ -578,19 +578,47 @@ const getExamScheduleReport = async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 15;
   const year = parseInt(req.query.year);
   const term = parseInt(req.query.term) || 1;
+  const searchQuery = req.query.search || null;
+  const typeFilter = req.query.type || null;
+
+  if (isNaN(year)) {
+    const error = new HttpError("Năm không hợp lệ!", 400);
+    return next(error);
+  }
+
   try {
     const skip = (page - 1) * limit;
     const startOfYear = new Date(`${year}-10-02`);
     const endOfYear = new Date(`${year + 1}-10-01`);
 
-    const examSchedules = await ExamSchedule.find({
+    let examScheduleQuery = {
       term: term,
       start_time: { $gte: startOfYear, $lte: endOfYear },
-    });
+    };
 
-    const esIds = examSchedules.map((examSchedule, i) => examSchedule._id);
+    if (searchQuery) {
+      const searchRegex = new RegExp(searchQuery, "i");
+      const roomIds = await Room.find({ room_name: searchRegex }).distinct(
+        "_id"
+      );
+      examScheduleQuery = {
+        ...examScheduleQuery,
+        room: { $in: roomIds },
+      };
+    }
 
-    const reports = await Report.find({ time: { $in: esIds } })
+    const examSchedules = await ExamSchedule.find(examScheduleQuery).select(
+      "_id"
+    );
+    const esIds = examSchedules.map((examSchedule) => examSchedule._id);
+
+    let reportQuery = { time: { $in: esIds } };
+
+    if (typeFilter) {
+      reportQuery = { ...reportQuery, report_type: typeFilter };
+    }
+
+    const reports = await Report.find(reportQuery)
       .populate({
         path: "time",
         select: "room subject start_time",

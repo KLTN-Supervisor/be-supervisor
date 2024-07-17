@@ -10,6 +10,7 @@ const unrar = require("node-unrar-js");
 const { getValidFields } = require("../../utils/validators");
 const { transformObjectFields } = require("../../utils/objectFunctions");
 const removeVietnameseTones = require("../../utils/removeVietnameseTones");
+const mongoose = require("mongoose");
 
 const importStudents = async (req, res, next) => {
   try {
@@ -539,10 +540,33 @@ const updateStudent = async (req, res, next) => {
   }
 };
 
+const deleteStudents = async (req, res, next) => {
+  try {
+    const { selectedIds } = req.body;
+
+    // Validate selectedIds
+    if (
+      !Array.isArray(selectedIds) ||
+      !selectedIds.every((id) => mongoose.Types.ObjectId.isValid(id))
+    ) {
+      return next(new HttpError("ID cần xóa không hợp lệ!", 400));
+    }
+
+    const result = await Student.deleteMany({ _id: { $in: selectedIds } });
+
+    res.json({ message: `Xóa sinh viên thành công!` });
+  } catch (err) {
+    console.error("Error deleting students:", err);
+    const error = new HttpError("Failed to delete students", 500);
+    return next(error);
+  }
+};
+
 module.exports = {
   importStudents,
   getStudentsPaginated,
   handleUncompressFile,
   updateStudent,
   createStudent,
+  deleteStudents,
 };

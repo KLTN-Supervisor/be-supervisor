@@ -106,5 +106,6 @@ router.post(
 );
 
 router.get("/train", TrainningController.trainingData);
+router.delete("/delete-students", StudentController.deleteStudents);
 
 module.exports = router;
