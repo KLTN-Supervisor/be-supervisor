@@ -350,8 +350,8 @@ const deleteFiles = async (files) => {
         } else {
           // Other errors
           console.error("Không thể xóa file:", err);
+          failedDeletions.push({ _id: file._id, file_name: file.file_name });
         }
-        failedDeletions.push({ _id: file._id, file_name: file.file_name });
       }
     });
     try {
