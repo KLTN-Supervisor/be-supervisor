@@ -336,21 +336,27 @@ const deleteFiles = async (files) => {
   if (files.length > 0) {
     const deletePromises = files.map(async (file) => {
       const filePath = path.join(file.file_path);
+      let fileUnlinked = false;
+
       try {
         await fs.promises.unlink(filePath);
-        //console.log("Đã xóa file:", filePath);
-
-        // Xóa file khỏi DB nếu unlink thành công
-        await UploadFile.findByIdAndDelete(file._id);
-        //console.log("Đã xóa file khỏi DB:", file._id);
+        fileUnlinked = true;
       } catch (err) {
         if (err.code === "ENOENT") {
-          // File does not exist
           console.error("File không tồn tại:", filePath);
+          fileUnlinked = true; // Treat as successfully unlinked
         } else {
-          // Other errors
           console.error("Không thể xóa file:", err);
           failedDeletions.push({ _id: file._id, file_name: file.file_name });
+        }
+      }
+
+      if (fileUnlinked) {
+        try {
+          await UploadFile.findByIdAndDelete(file._id);
+        } catch (err) {
+          console.error("Xóa dữ liệu db không thành công:", err);
+          // Optionally add the file to failedDeletions here if needed
         }
       }
     });
