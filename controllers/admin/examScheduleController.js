@@ -497,7 +497,7 @@ const readFileDataFromExcel2 = async (path) => {
     const [fromYear, toYear] = year.split("-").map(Number);
 
     for (let item of data) {
-      console.log(item);
+      //console.log(item);
       if (
         item?.["C"] &&
         typeof item["C"] === "string" &&
@@ -532,7 +532,9 @@ const readFileDataFromExcel2 = async (path) => {
           dateParts[2],
           dateParts[1] - 1,
           dateParts[0],
-          timeParts[0],
+          process.env.NODE_ENV === "production"
+            ? timeParts[0] - 7
+            : timeParts[0],
           timeParts[1]
         );
 
